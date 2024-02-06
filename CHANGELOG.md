@@ -41,6 +41,7 @@ This release marks our first release under the Prometheus umbrella.
 - chore: Add copyright license headers and test
 - Make cluster and worker-thread metric aggregation order deterministic
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
+- perf: Improve the memory usage of histograms by delaying allocation of bucket data
 
 ### Added
 
