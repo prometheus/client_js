@@ -34,6 +34,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - chore: update faceoff to 1.1
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 - perf: Improve the memory usage of histograms by delaying allocation of bucket data
+- fix: Avoid updating exemplar values during subsequent metric changes (Fixes [#616](https://github.com/prometheus/client_js/issues/616))
 
 ### Added
 
