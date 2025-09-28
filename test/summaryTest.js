@@ -1,8 +1,12 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const { describeEach, timers } = require('./helpers');
+const errorMessages = require('./error-messages');
 const Registry = require('../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('summary with %s registry', (tag, regType) => {
@@ -31,17 +35,17 @@ describe.each([
 			it('should add a value to the summary', async () => {
 				instance.observe(100);
 				const { values } = await instance.get();
-				expect(values[0].labels.quantile).toEqual(0.01);
-				expect(values[0].value).toEqual(100);
-				expect(values[7].metricName).toEqual('summary_test_sum');
-				expect(values[7].value).toEqual(100);
-				expect(values[8].metricName).toEqual('summary_test_count');
-				expect(values[8].value).toEqual(1);
+				assert.strictEqual(values[0].labels.quantile, 0.01);
+				assert.strictEqual(values[0].value, 100);
+				assert.strictEqual(values[7].metricName, 'summary_test_sum');
+				assert.strictEqual(values[7].value, 100);
+				assert.strictEqual(values[8].metricName, 'summary_test_count');
+				assert.strictEqual(values[8].value, 1);
 			});
 
 			it('should be able to observe 0s', async () => {
 				instance.observe(0);
-				expect((await instance.get()).values[8].value).toEqual(1);
+				assert.strictEqual((await instance.get()).values[8].value, 1);
 			});
 
 			it('should validate labels when observing', async () => {
@@ -51,9 +55,18 @@ describe.each([
 					labelNames: ['foo'],
 				});
 
-				expect(() => {
-					summary.observe({ foo: 'bar', baz: 'qaz' }, 10);
-				}).toThrowErrorMatchingSnapshot();
+				assert.throws(
+					() => {
+						summary.observe({ foo: 'bar', baz: 'qaz' }, 10);
+					},
+					error => {
+						assert.strictEqual(
+							error.message,
+							errorMessages.INVALID_LABEL_SET('baz'),
+						);
+						return true;
+					},
+				);
 			});
 
 			it('should correctly calculate percentiles when more values are added to the summary', async () => {
@@ -65,34 +78,34 @@ describe.each([
 
 				const { values } = await instance.get();
 
-				expect(values.length).toEqual(9);
+				assert.strictEqual(values.length, 9);
 
-				expect(values[0].labels.quantile).toEqual(0.01);
-				expect(values[0].value).toEqual(50);
+				assert.strictEqual(values[0].labels.quantile, 0.01);
+				assert.strictEqual(values[0].value, 50);
 
-				expect(values[1].labels.quantile).toEqual(0.05);
-				expect(values[1].value).toEqual(50);
+				assert.strictEqual(values[1].labels.quantile, 0.05);
+				assert.strictEqual(values[1].value, 50);
 
-				expect(values[2].labels.quantile).toEqual(0.5);
-				expect(values[2].value).toEqual(80);
+				assert.strictEqual(values[2].labels.quantile, 0.5);
+				assert.strictEqual(values[2].value, 80);
 
-				expect(values[3].labels.quantile).toEqual(0.9);
-				expect(values[3].value).toEqual(100);
+				assert.strictEqual(values[3].labels.quantile, 0.9);
+				assert.strictEqual(values[3].value, 100);
 
-				expect(values[4].labels.quantile).toEqual(0.95);
-				expect(values[4].value).toEqual(100);
+				assert.strictEqual(values[4].labels.quantile, 0.95);
+				assert.strictEqual(values[4].value, 100);
 
-				expect(values[5].labels.quantile).toEqual(0.99);
-				expect(values[5].value).toEqual(100);
+				assert.strictEqual(values[5].labels.quantile, 0.99);
+				assert.strictEqual(values[5].value, 100);
 
-				expect(values[6].labels.quantile).toEqual(0.999);
-				expect(values[6].value).toEqual(100);
+				assert.strictEqual(values[6].labels.quantile, 0.999);
+				assert.strictEqual(values[6].value, 100);
 
-				expect(values[7].metricName).toEqual('summary_test_sum');
-				expect(values[7].value).toEqual(400);
+				assert.strictEqual(values[7].metricName, 'summary_test_sum');
+				assert.strictEqual(values[7].value, 400);
 
-				expect(values[8].metricName).toEqual('summary_test_count');
-				expect(values[8].value).toEqual(5);
+				assert.strictEqual(values[8].metricName, 'summary_test_count');
+				assert.strictEqual(values[8].value, 5);
 			});
 
 			it('should correctly use calculate other percentiles when configured', async () => {
@@ -110,19 +123,19 @@ describe.each([
 
 				const { values } = await instance.get();
 
-				expect(values.length).toEqual(4);
+				assert.strictEqual(values.length, 4);
 
-				expect(values[0].labels.quantile).toEqual(0.5);
-				expect(values[0].value).toEqual(80);
+				assert.strictEqual(values[0].labels.quantile, 0.5);
+				assert.strictEqual(values[0].value, 80);
 
-				expect(values[1].labels.quantile).toEqual(0.9);
-				expect(values[1].value).toEqual(100);
+				assert.strictEqual(values[1].labels.quantile, 0.9);
+				assert.strictEqual(values[1].value, 100);
 
-				expect(values[2].metricName).toEqual('summary_test_sum');
-				expect(values[2].value).toEqual(400);
+				assert.strictEqual(values[2].metricName, 'summary_test_sum');
+				assert.strictEqual(values[2].value, 400);
 
-				expect(values[3].metricName).toEqual('summary_test_count');
-				expect(values[3].value).toEqual(5);
+				assert.strictEqual(values[3].metricName, 'summary_test_count');
+				assert.strictEqual(values[3].value, 5);
 			});
 
 			it('should allow to reset itself', async () => {
@@ -136,27 +149,27 @@ describe.each([
 
 				const { values } = await instance.get();
 
-				expect(values[0].labels.quantile).toEqual(0.5);
-				expect(values[0].value).toEqual(100);
+				assert.strictEqual(values[0].labels.quantile, 0.5);
+				assert.strictEqual(values[0].value, 100);
 
-				expect(values[1].metricName).toEqual('summary_test_sum');
-				expect(values[1].value).toEqual(100);
+				assert.strictEqual(values[1].metricName, 'summary_test_sum');
+				assert.strictEqual(values[1].value, 100);
 
-				expect(values[2].metricName).toEqual('summary_test_count');
-				expect(values[2].value).toEqual(1);
+				assert.strictEqual(values[2].metricName, 'summary_test_count');
+				assert.strictEqual(values[2].value, 1);
 
 				instance.reset();
 
 				const { values: valuesPost } = await instance.get();
 
-				expect(valuesPost[0].labels.quantile).toEqual(0.5);
-				expect(valuesPost[0].value).toEqual(0);
+				assert.strictEqual(valuesPost[0].labels.quantile, 0.5);
+				assert.strictEqual(valuesPost[0].value, 0);
 
-				expect(valuesPost[1].metricName).toEqual('summary_test_sum');
-				expect(valuesPost[1].value).toEqual(0);
+				assert.strictEqual(valuesPost[1].metricName, 'summary_test_sum');
+				assert.strictEqual(valuesPost[1].value, 0);
 
-				expect(valuesPost[2].metricName).toEqual('summary_test_count');
-				expect(valuesPost[2].value).toEqual(0);
+				assert.strictEqual(valuesPost[2].metricName, 'summary_test_count');
+				assert.strictEqual(valuesPost[2].value, 0);
 			});
 
 			describe('labels', () => {
@@ -175,136 +188,147 @@ describe.each([
 					instance.labels('POST', '/test').observe(100);
 
 					const { values } = await instance.get();
-					expect(values).toHaveLength(6);
-					expect(values[0].labels.method).toEqual('GET');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].value).toEqual(50);
+					assert.strictEqual(values.length, 6);
+					assert.strictEqual(values[0].labels.method, 'GET');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].value, 50);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('GET');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(50);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'GET');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 50);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('GET');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'GET');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					expect(values[3].labels.quantile).toEqual(0.9);
-					expect(values[3].labels.method).toEqual('POST');
-					expect(values[3].labels.endpoint).toEqual('/test');
-					expect(values[3].value).toEqual(100);
+					assert.strictEqual(values[3].labels.quantile, 0.9);
+					assert.strictEqual(values[3].labels.method, 'POST');
+					assert.strictEqual(values[3].labels.endpoint, '/test');
+					assert.strictEqual(values[3].value, 100);
 
-					expect(values[4].metricName).toEqual('summary_test_sum');
-					expect(values[4].labels.method).toEqual('POST');
-					expect(values[4].labels.endpoint).toEqual('/test');
-					expect(values[4].value).toEqual(100);
+					assert.strictEqual(values[4].metricName, 'summary_test_sum');
+					assert.strictEqual(values[4].labels.method, 'POST');
+					assert.strictEqual(values[4].labels.endpoint, '/test');
+					assert.strictEqual(values[4].value, 100);
 
-					expect(values[5].metricName).toEqual('summary_test_count');
-					expect(values[5].labels.method).toEqual('POST');
-					expect(values[5].labels.endpoint).toEqual('/test');
-					expect(values[5].value).toEqual(1);
+					assert.strictEqual(values[5].metricName, 'summary_test_count');
+					assert.strictEqual(values[5].labels.method, 'POST');
+					assert.strictEqual(values[5].labels.endpoint, '/test');
+					assert.strictEqual(values[5].value, 1);
 				});
 
 				it('should throw error if label lengths does not match', () => {
 					const fn = function () {
 						instance.labels('GET').observe();
 					};
-					expect(fn).toThrowErrorMatchingSnapshot();
+					assert.throws(fn, error => {
+						assert.strictEqual(
+							error.message,
+							errorMessages.INVALID_LABEL_ARGUMENTS(
+								1,
+								'GET',
+								2,
+								'method, endpoint',
+							),
+						);
+						return true;
+					});
 				});
 
 				it('should start a timer', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.labels('GET', '/test').startTimer();
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					const duration = end();
-					expect(duration).toEqual(1);
+					assert.strictEqual(duration, 1);
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.method).toEqual('GET');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].value).toEqual(1);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.method, 'GET');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].value, 1);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('GET');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(1);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'GET');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 1);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('GET');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'GET');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should start a timer and set labels afterwards', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.startTimer();
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					end({ method: 'GET', endpoint: '/test' });
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.method).toEqual('GET');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].value).toEqual(1);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.method, 'GET');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].value, 1);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('GET');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(1);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'GET');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 1);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('GET');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'GET');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should allow labels before and after timers', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.startTimer({ method: 'GET' });
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					end({ endpoint: '/test' });
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.method).toEqual('GET');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].value).toEqual(1);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.method, 'GET');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].value, 1);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('GET');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(1);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'GET');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 1);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('GET');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'GET');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should not mutate passed startLabels', () => {
 					const startLabels = { method: 'GET' };
 					const end = instance.startTimer(startLabels);
 					end({ endpoint: '/test' });
-					expect(startLabels).toEqual({ method: 'GET' });
+					assert.deepStrictEqual(startLabels, { method: 'GET' });
 				});
 
 				it('should handle labels provided as an object', async () => {
 					instance.labels({ method: 'GET' }).startTimer()();
 					const values = (await instance.get()).values;
 					values.forEach(value => {
-						expect(value.labels.method).toBe('GET');
+						assert.strictEqual(value.labels.method, 'GET');
 					});
 				});
 			});
@@ -327,119 +351,130 @@ describe.each([
 					instance.remove('GET', '/test');
 
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].labels.method).toEqual('POST');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].value).toEqual(100);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].labels.method, 'POST');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].value, 100);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('POST');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(100);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'POST');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 100);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('POST');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'POST');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 				});
 
 				it('should remove all labels', async () => {
 					instance.remove('GET', '/test');
 					instance.remove('POST', '/test');
 
-					expect((await instance.get()).values).toHaveLength(0);
+					assert.strictEqual((await instance.get()).values.length, 0);
 				});
 
 				it('should throw error if label lengths does not match', () => {
 					const fn = function () {
 						instance.remove('GET');
 					};
-					expect(fn).toThrowErrorMatchingSnapshot();
+					assert.throws(fn, error => {
+						assert.strictEqual(
+							error.message,
+							errorMessages.INVALID_LABEL_ARGUMENTS(
+								1,
+								'GET',
+								2,
+								'method, endpoint',
+							),
+						);
+						return true;
+					});
 				});
 
 				it('should remove timer values', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.labels('GET', '/test').startTimer();
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					end();
 					instance.remove('GET', '/test');
 
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].labels.method).toEqual('POST');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].value).toEqual(100);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].labels.method, 'POST');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].value, 100);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('POST');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(100);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'POST');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 100);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('POST');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'POST');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should remove timer values when labels are set afterwards', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.startTimer();
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					end({ method: 'GET', endpoint: '/test' });
 					instance.remove('GET', '/test');
 
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].labels.method).toEqual('POST');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].value).toEqual(100);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].labels.method, 'POST');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].value, 100);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('POST');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(100);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'POST');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 100);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('POST');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'POST');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should remove timer values with before and after labels', async () => {
-					jest.useFakeTimers('modern');
-					jest.setSystemTime(0);
+					timers.useFakeTimers();
+					timers.setSystemTime(0);
 					const end = instance.startTimer({ method: 'GET' });
-					jest.advanceTimersByTime(1000);
+					timers.advanceTimersByTime(1000);
 					end({ endpoint: '/test' });
 					instance.remove('GET', '/test');
 
 					const { values } = await instance.get();
-					expect(values).toHaveLength(3);
-					expect(values[0].labels.quantile).toEqual(0.9);
-					expect(values[0].labels.method).toEqual('POST');
-					expect(values[0].labels.endpoint).toEqual('/test');
-					expect(values[0].value).toEqual(100);
+					assert.strictEqual(values.length, 3);
+					assert.strictEqual(values[0].labels.quantile, 0.9);
+					assert.strictEqual(values[0].labels.method, 'POST');
+					assert.strictEqual(values[0].labels.endpoint, '/test');
+					assert.strictEqual(values[0].value, 100);
 
-					expect(values[1].metricName).toEqual('summary_test_sum');
-					expect(values[1].labels.method).toEqual('POST');
-					expect(values[1].labels.endpoint).toEqual('/test');
-					expect(values[1].value).toEqual(100);
+					assert.strictEqual(values[1].metricName, 'summary_test_sum');
+					assert.strictEqual(values[1].labels.method, 'POST');
+					assert.strictEqual(values[1].labels.endpoint, '/test');
+					assert.strictEqual(values[1].value, 100);
 
-					expect(values[2].metricName).toEqual('summary_test_count');
-					expect(values[2].labels.method).toEqual('POST');
-					expect(values[2].labels.endpoint).toEqual('/test');
-					expect(values[2].value).toEqual(1);
+					assert.strictEqual(values[2].metricName, 'summary_test_count');
+					assert.strictEqual(values[2].labels.method, 'POST');
+					assert.strictEqual(values[2].labels.endpoint, '/test');
+					assert.strictEqual(values[2].value, 1);
 
-					jest.useRealTimers();
+					timers.useRealTimers();
 				});
 
 				it('should remove by labels object', async () => {
@@ -447,7 +482,7 @@ describe.each([
 					instance.remove({ endpoint: '/test' });
 					const values = (await instance.get()).values;
 					values.forEach(value => {
-						expect(value.labels).not.toEqual({ endpoint: '/test' });
+						assert.notDeepStrictEqual(value.labels, { endpoint: '/test' });
 					});
 				});
 			});
@@ -464,13 +499,13 @@ describe.each([
 		it('should increase count', async () => {
 			instance.observe(100);
 			const { values } = await instance.get();
-			expect(values[0].labels.quantile).toEqual(0.01);
-			expect(values[0].value).toEqual(100);
-			expect(values[7].metricName).toEqual('summary_test_sum');
-			expect(values[7].value).toEqual(100);
-			expect(values[8].metricName).toEqual('summary_test_count');
-			expect(values[8].value).toEqual(1);
-			expect((await globalRegistry.getMetricsAsJSON()).length).toEqual(0);
+			assert.strictEqual(values[0].labels.quantile, 0.01);
+			assert.strictEqual(values[0].value, 100);
+			assert.strictEqual(values[7].metricName, 'summary_test_sum');
+			assert.strictEqual(values[7].value, 100);
+			assert.strictEqual(values[8].metricName, 'summary_test_count');
+			assert.strictEqual(values[8].value, 1);
+			assert.strictEqual((await globalRegistry.getMetricsAsJSON()).length, 0);
 		});
 	});
 	describe('registry instance', () => {
@@ -486,22 +521,22 @@ describe.each([
 		it('should increment counter', async () => {
 			instance.observe(100);
 			const { values } = await instance.get();
-			expect(values[0].labels.quantile).toEqual(0.01);
-			expect(values[0].value).toEqual(100);
-			expect(values[7].metricName).toEqual('summary_test_sum');
-			expect(values[7].value).toEqual(100);
-			expect(values[8].metricName).toEqual('summary_test_count');
-			expect(values[8].value).toEqual(1);
-			expect((await globalRegistry.getMetricsAsJSON()).length).toEqual(0);
-			expect((await registryInstance.getMetricsAsJSON()).length).toEqual(1);
+			assert.strictEqual(values[0].labels.quantile, 0.01);
+			assert.strictEqual(values[0].value, 100);
+			assert.strictEqual(values[7].metricName, 'summary_test_sum');
+			assert.strictEqual(values[7].value, 100);
+			assert.strictEqual(values[8].metricName, 'summary_test_count');
+			assert.strictEqual(values[8].value, 1);
+			assert.strictEqual((await globalRegistry.getMetricsAsJSON()).length, 0);
+			assert.strictEqual((await registryInstance.getMetricsAsJSON()).length, 1);
 		});
 	});
 	describe('sliding window', () => {
 		let clock;
 		beforeEach(() => {
 			globalRegistry.clear();
-			jest.useFakeTimers('modern');
-			jest.setSystemTime(0);
+			timers.useFakeTimers();
+			timers.setSystemTime(0);
 		});
 
 		it('should present percentiles as zero when maxAgeSeconds and ageBuckets are set but not pruneAgedBuckets', async () => {
@@ -516,20 +551,20 @@ describe.each([
 
 			for (let i = 0; i < 5; i++) {
 				const { values } = await localInstance.get();
-				expect(values[0].labels.quantile).toEqual(0.01);
-				expect(values[0].value).toEqual(100);
-				expect(values[7].metricName).toEqual('summary_test_sum');
-				expect(values[7].value).toEqual(100);
-				expect(values[8].metricName).toEqual('summary_test_count');
-				expect(values[8].value).toEqual(1);
-				jest.advanceTimersByTime(1001);
+				assert.strictEqual(values[0].labels.quantile, 0.01);
+				assert.strictEqual(values[0].value, 100);
+				assert.strictEqual(values[7].metricName, 'summary_test_sum');
+				assert.strictEqual(values[7].value, 100);
+				assert.strictEqual(values[8].metricName, 'summary_test_count');
+				assert.strictEqual(values[8].value, 1);
+				timers.advanceTimersByTime(1001);
 			}
 
 			const { values } = await localInstance.get();
-			expect(values[0].labels.quantile).toEqual(0.01);
-			expect(values[0].value).toEqual(0);
-			expect(values[7].value).toEqual(100);
-			expect(values[8].value).toEqual(1);
+			assert.strictEqual(values[0].labels.quantile, 0.01);
+			assert.strictEqual(values[0].value, 0);
+			assert.strictEqual(values[7].value, 100);
+			assert.strictEqual(values[8].value, 1);
 		});
 
 		it('should prune expired buckets when pruneAgedBuckets are set with maxAgeSeconds and ageBuckets', async () => {
@@ -545,17 +580,17 @@ describe.each([
 
 			for (let i = 0; i < 5; i++) {
 				const { values } = await localInstance.get();
-				expect(values[0].labels.quantile).toEqual(0.01);
-				expect(values[0].value).toEqual(100);
-				expect(values[7].metricName).toEqual('summary_test_sum');
-				expect(values[7].value).toEqual(100);
-				expect(values[8].metricName).toEqual('summary_test_count');
-				expect(values[8].value).toEqual(1);
-				jest.advanceTimersByTime(1001);
+				assert.strictEqual(values[0].labels.quantile, 0.01);
+				assert.strictEqual(values[0].value, 100);
+				assert.strictEqual(values[7].metricName, 'summary_test_sum');
+				assert.strictEqual(values[7].value, 100);
+				assert.strictEqual(values[8].metricName, 'summary_test_count');
+				assert.strictEqual(values[8].value, 1);
+				timers.advanceTimersByTime(1001);
 			}
 
 			const { values } = await localInstance.get();
-			expect(values.length).toEqual(0);
+			assert.strictEqual(values.length, 0);
 		});
 
 		it('should not slide when maxAgeSeconds and ageBuckets are not configured', async () => {
@@ -567,18 +602,18 @@ describe.each([
 
 			for (let i = 0; i < 5; i++) {
 				const { values } = await localInstance.get();
-				expect(values[0].labels.quantile).toEqual(0.01);
-				expect(values[0].value).toEqual(100);
-				expect(values[7].metricName).toEqual('summary_test_sum');
-				expect(values[7].value).toEqual(100);
-				expect(values[8].metricName).toEqual('summary_test_count');
-				expect(values[8].value).toEqual(1);
-				jest.advanceTimersByTime(1001);
+				assert.strictEqual(values[0].labels.quantile, 0.01);
+				assert.strictEqual(values[0].value, 100);
+				assert.strictEqual(values[7].metricName, 'summary_test_sum');
+				assert.strictEqual(values[7].value, 100);
+				assert.strictEqual(values[8].metricName, 'summary_test_count');
+				assert.strictEqual(values[8].value, 1);
+				timers.advanceTimersByTime(1001);
 			}
 
 			const { values } = await localInstance.get();
-			expect(values[0].labels.quantile).toEqual(0.01);
-			expect(values[0].value).toEqual(100);
+			assert.strictEqual(values[0].labels.quantile, 0.01);
+			assert.strictEqual(values[0].value, 100);
 		});
 	});
 });

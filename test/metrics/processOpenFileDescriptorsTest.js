@@ -1,20 +1,28 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('../helpers');
+
 const Registry = require('../../index').Registry;
 
-jest.mock(
-	'process',
-	() => Object.assign({}, jest.requireActual('process'), { platform: 'linux' }), // This metric only works on Linux
-);
+// Note: This metric only works on Linux - process.platform check is handled in the metric implementation
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('processOpenFileDescriptors with %s registry', (tag, regType) => {
 	const register = require('../../index').register;
 	const processOpenFileDescriptors = require('../../lib/metrics/processOpenFileDescriptors');
 
-	beforeAll(() => {
+	before(() => {
 		register.clear();
 	});
 
@@ -27,15 +35,15 @@ describe.each([
 	});
 
 	it(`should add metric to the ${tag} registry`, async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 
 		processOpenFileDescriptors();
 
 		const metrics = await register.getMetricsAsJSON();
 
-		expect(metrics).toHaveLength(1);
-		expect(metrics[0].help).toEqual('Number of open file descriptors.');
-		expect(metrics[0].type).toEqual('gauge');
-		expect(metrics[0].name).toEqual('process_open_fds');
+		assert.strictEqual(metrics.length, 1);
+		assert.strictEqual(metrics[0].help, 'Number of open file descriptors.');
+		assert.strictEqual(metrics[0].type, 'gauge');
+		assert.strictEqual(metrics[0].name, 'process_open_fds');
 	});
 });

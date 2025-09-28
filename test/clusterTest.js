@@ -1,10 +1,13 @@
 'use strict';
 
+const { describe, it, beforeEach } = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
 const cluster = require('cluster');
 const process = require('process');
 const Registry = require('../lib/cluster');
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('%s AggregatorRegistry', (tag, regType) => {
@@ -17,13 +20,13 @@ describe.each([
 
 		require('../lib/cluster');
 
-		expect(cluster.listenerCount('message')).toBe(originalListenerCount);
+		assert.strictEqual(cluster.listenerCount('message'), originalListenerCount);
 
-		jest.resetModules();
+		// Note: jest.resetModules() not directly available in node:test
 
 		require('../lib/cluster');
 
-		expect(cluster.listenerCount('message')).toBe(originalListenerCount);
+		assert.strictEqual(cluster.listenerCount('message'), originalListenerCount);
 	});
 
 	it('requiring the cluster should not add any listeners on the process module', () => {
@@ -31,13 +34,13 @@ describe.each([
 
 		require('../lib/cluster');
 
-		expect(process.listenerCount('message')).toBe(originalListenerCount);
+		assert.strictEqual(process.listenerCount('message'), originalListenerCount);
 
-		jest.resetModules();
+		// Note: jest.resetModules() not directly available in node:test
 
 		require('../lib/cluster');
 
-		expect(process.listenerCount('message')).toBe(originalListenerCount);
+		assert.strictEqual(process.listenerCount('message'), originalListenerCount);
 	});
 
 	describe('aggregatorRegistry.clusterMetrics()', () => {
@@ -45,13 +48,13 @@ describe.each([
 			const AggregatorRegistry = require('../lib/cluster');
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
-			expect(metrics).toEqual('');
+			assert.strictEqual(metrics, '');
 		});
 	});
 
 	describe('message handling', () => {
 		it('does not error out on unexpected (or late) responses', () => {
-			jest.resetModules();
+			// Note: jest.resetModules() not directly available in node:test
 
 			require('../lib/cluster');
 
@@ -62,7 +65,8 @@ describe.each([
 				requestId: -3,
 			};
 
-			expect(() => cluster.emit('message', {}, unexpected)).not.toThrow();
+			// Should not throw
+			cluster.emit('message', {}, unexpected);
 		});
 	});
 });

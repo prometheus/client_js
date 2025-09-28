@@ -1,15 +1,26 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('../helpers');
+
 const Registry = require('../../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('processHandles with %s registry', (tag, regType) => {
 	const register = require('../../index').register;
 	const processHandles = require('../../lib/metrics/processHandles');
 
-	beforeAll(() => {
+	before(() => {
 		register.clear();
 	});
 
@@ -22,22 +33,23 @@ describe.each([
 	});
 
 	it(`should add metric to the ${tag} registry`, async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 
 		processHandles();
 
 		const metrics = await register.getMetricsAsJSON();
 
-		expect(metrics).toHaveLength(2);
+		assert.strictEqual(metrics.length, 2);
 
-		expect(metrics[0].help).toEqual(
+		assert.strictEqual(
+			metrics[0].help,
 			'Number of active libuv handles grouped by handle type. Every handle type is C++ class name.',
 		);
-		expect(metrics[0].type).toEqual('gauge');
-		expect(metrics[0].name).toEqual('nodejs_active_handles');
+		assert.strictEqual(metrics[0].type, 'gauge');
+		assert.strictEqual(metrics[0].name, 'nodejs_active_handles');
 
-		expect(metrics[1].help).toEqual('Total number of active handles.');
-		expect(metrics[1].type).toEqual('gauge');
-		expect(metrics[1].name).toEqual('nodejs_active_handles_total');
+		assert.strictEqual(metrics[1].help, 'Total number of active handles.');
+		assert.strictEqual(metrics[1].type, 'gauge');
+		assert.strictEqual(metrics[1].name, 'nodejs_active_handles_total');
 	});
 });

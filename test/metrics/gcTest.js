@@ -1,15 +1,26 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('../helpers');
+
 const Registry = require('../../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('gc with %s registry', (tag, regType) => {
 	const register = require('../../index').register;
 	const processHandles = require('../../lib/metrics/gc');
 
-	beforeAll(() => {
+	before(() => {
 		register.clear();
 	});
 
@@ -22,7 +33,7 @@ describe.each([
 	});
 
 	it(`should add metric to the ${tag} registry`, async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 
 		processHandles();
 
@@ -37,15 +48,16 @@ describe.each([
 		}
 
 		if (perf_hooks) {
-			expect(metrics).toHaveLength(1);
+			assert.strictEqual(metrics.length, 1);
 
-			expect(metrics[0].help).toEqual(
+			assert.strictEqual(
+				metrics[0].help,
 				'Garbage collection duration by kind, one of major, minor, incremental or weakcb.',
 			);
-			expect(metrics[0].type).toEqual('histogram');
-			expect(metrics[0].name).toEqual('nodejs_gc_duration_seconds');
+			assert.strictEqual(metrics[0].type, 'histogram');
+			assert.strictEqual(metrics[0].name, 'nodejs_gc_duration_seconds');
 		} else {
-			expect(metrics).toHaveLength(0);
+			assert.strictEqual(metrics.length, 0);
 		}
 	});
 });

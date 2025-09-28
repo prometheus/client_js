@@ -1,8 +1,19 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('../helpers');
+
 const Registry = require('../../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('heapSizeAndUsed with %s registry', (tag, regType) => {
@@ -31,16 +42,16 @@ describe.each([
 		const totalGauge = globalRegistry.getSingleMetric(
 			'nodejs_heap_size_total_bytes',
 		);
-		expect((await totalGauge.get()).values[0].value).toEqual(1000);
+		assert.strictEqual((await totalGauge.get()).values[0].value, 1000);
 
 		const usedGauge = globalRegistry.getSingleMetric(
 			'nodejs_heap_size_used_bytes',
 		);
-		expect((await usedGauge.get()).values[0].value).toEqual(500);
+		assert.strictEqual((await usedGauge.get()).values[0].value, 500);
 
 		const externalGauge = globalRegistry.getSingleMetric(
 			'nodejs_external_memory_bytes',
 		);
-		expect((await externalGauge.get()).values[0].value).toEqual(100);
+		assert.strictEqual((await externalGauge.get()).values[0].value, 100);
 	});
 });

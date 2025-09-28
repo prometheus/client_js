@@ -1,24 +1,49 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
+
 const pushGatewayPath = '/path';
 const pushGatewayURL = 'http://192.168.99.100:9091';
 const pushGatewayFullURL = pushGatewayURL + pushGatewayPath;
 
-const mockHttp = jest.fn().mockReturnValue({
-	on: jest.fn(),
-	end: jest.fn(),
-	write: jest.fn(),
-});
+// Note: Jest module mocking for 'http' module cannot be directly converted to node:test
+// This would require using a different mocking strategy or library
+const mockHttp = {
+	calls: [],
+	mockReturnValue: {
+		on: () => {},
+		end: () => {},
+		write: () => {},
+	},
+	mockClear() {
+		this.calls = [];
+	},
+	request(options) {
+		this.calls.push({ options });
+		return this.mockReturnValue;
+	},
+};
 
-jest.mock('http', () => {
-	return {
-		request: mockHttp,
-	};
-});
+// Mock the http module by intercepting require calls
+const Module = require('module');
+const originalRequire = Module.prototype.require;
+Module.prototype.require = function (...args) {
+	if (args[0] === 'http') {
+		return {
+			request: (...requestArgs) => {
+				mockHttp.calls.push(requestArgs);
+				return mockHttp.mockReturnValue;
+			},
+		};
+	}
+	return originalRequire.apply(this, args);
+};
 
 const Registry = require('../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('pushgateway with path and %s registry', (tag, regType) => {
@@ -36,28 +61,32 @@ describe.each([
 			it('should push metrics', () => {
 				instance.pushAdd({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'POST');
+				assert.strictEqual(invocation.path, '/path/metrics/job/testJob');
 			});
 
 			it('should use groupings', () => {
 				instance.pushAdd({ jobName: 'testJob', groupings: { key: 'value' } });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob/key/value');
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'POST');
+				assert.strictEqual(
+					invocation.path,
+					'/path/metrics/job/testJob/key/value',
+				);
 			});
 
 			it('should escape groupings', () => {
 				instance.pushAdd({ jobName: 'testJob', groupings: { key: 'va&lue' } });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual(
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'POST');
+				assert.strictEqual(
+					invocation.path,
 					'/path/metrics/job/testJob/key/va%26lue',
 				);
 			});
@@ -67,19 +96,19 @@ describe.each([
 			it('should push with PUT', () => {
 				instance.push({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'PUT');
+				assert.strictEqual(invocation.path, '/path/metrics/job/testJob');
 			});
 
 			it('should uri encode url', () => {
 				instance.push({ jobName: 'test&Job' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.path).toEqual('/path/metrics/job/test%26Job');
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'PUT');
+				assert.strictEqual(invocation.path, '/path/metrics/job/test%26Job');
 			});
 		});
 
@@ -87,10 +116,10 @@ describe.each([
 			it('should push delete with no body', () => {
 				instance.delete({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('DELETE');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'DELETE');
+				assert.strictEqual(invocation.path, '/path/metrics/job/testJob');
 			});
 		});
 
@@ -110,28 +139,28 @@ describe.each([
 			it('pushAdd should send POST request with basic auth data', () => {
 				instance.pushAdd({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.auth).toEqual(auth);
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'POST');
+				assert.strictEqual(invocation.auth, auth);
 			});
 
 			it('push should send PUT request with basic auth data', () => {
 				instance.push({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.auth).toEqual(auth);
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'PUT');
+				assert.strictEqual(invocation.auth, auth);
 			});
 
 			it('delete should send DELETE request with basic auth data', () => {
 				instance.delete({ jobName: 'testJob' });
 
-				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('DELETE');
-				expect(invocation.auth).toEqual(auth);
+				assert.strictEqual(mockHttp.calls.length, 1);
+				const invocation = mockHttp.calls[0][0];
+				assert.strictEqual(invocation.method, 'DELETE');
+				assert.strictEqual(invocation.auth, auth);
 			});
 		});
 
@@ -148,9 +177,9 @@ describe.each([
 
 			instance.push({ jobName: 'testJob' });
 
-			expect(mockHttp).toHaveBeenCalledTimes(1);
-			const invocation = mockHttp.mock.calls[0][0];
-			expect(invocation.headers).toEqual({ 'unit-test': '1' });
+			assert.strictEqual(mockHttp.calls.length, 1);
+			const invocation = mockHttp.calls[0][0];
+			assert.deepStrictEqual(invocation.headers, { 'unit-test': '1' });
 		});
 	};
 	describe('global registry', () => {

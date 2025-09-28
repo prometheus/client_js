@@ -1,15 +1,26 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach, wait } = require('../helpers');
+
 const Registry = require('../../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('eventLoopLag with %s registry', (tag, regType) => {
 	const register = require('../../index').register;
 	const eventLoopLag = require('../../lib/metrics/eventLoopLag');
 
-	beforeAll(() => {
+	before(() => {
 		register.clear();
 	});
 
@@ -22,58 +33,65 @@ describe.each([
 	});
 
 	it(`should add metric to the ${tag} registry`, async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 		eventLoopLag();
 
 		await wait(5);
 
 		const metrics = await register.getMetricsAsJSON();
-		expect(metrics).toHaveLength(8);
+		assert.strictEqual(metrics.length, 8);
 
-		expect(metrics[0].help).toEqual('Lag of event loop in seconds.');
-		expect(metrics[0].type).toEqual('gauge');
-		expect(metrics[0].name).toEqual('nodejs_eventloop_lag_seconds');
+		assert.strictEqual(metrics[0].help, 'Lag of event loop in seconds.');
+		assert.strictEqual(metrics[0].type, 'gauge');
+		assert.strictEqual(metrics[0].name, 'nodejs_eventloop_lag_seconds');
 
-		expect(metrics[1].help).toEqual('The minimum recorded event loop delay.');
-		expect(metrics[1].type).toEqual('gauge');
-		expect(metrics[1].name).toEqual('nodejs_eventloop_lag_min_seconds');
+		assert.strictEqual(
+			metrics[1].help,
+			'The minimum recorded event loop delay.',
+		);
+		assert.strictEqual(metrics[1].type, 'gauge');
+		assert.strictEqual(metrics[1].name, 'nodejs_eventloop_lag_min_seconds');
 
-		expect(metrics[2].help).toEqual('The maximum recorded event loop delay.');
-		expect(metrics[2].type).toEqual('gauge');
-		expect(metrics[2].name).toEqual('nodejs_eventloop_lag_max_seconds');
+		assert.strictEqual(
+			metrics[2].help,
+			'The maximum recorded event loop delay.',
+		);
+		assert.strictEqual(metrics[2].type, 'gauge');
+		assert.strictEqual(metrics[2].name, 'nodejs_eventloop_lag_max_seconds');
 
-		expect(metrics[3].help).toEqual(
+		assert.strictEqual(
+			metrics[3].help,
 			'The mean of the recorded event loop delays.',
 		);
-		expect(metrics[3].type).toEqual('gauge');
-		expect(metrics[3].name).toEqual('nodejs_eventloop_lag_mean_seconds');
+		assert.strictEqual(metrics[3].type, 'gauge');
+		assert.strictEqual(metrics[3].name, 'nodejs_eventloop_lag_mean_seconds');
 
-		expect(metrics[4].help).toEqual(
+		assert.strictEqual(
+			metrics[4].help,
 			'The standard deviation of the recorded event loop delays.',
 		);
-		expect(metrics[4].type).toEqual('gauge');
-		expect(metrics[4].name).toEqual('nodejs_eventloop_lag_stddev_seconds');
+		assert.strictEqual(metrics[4].type, 'gauge');
+		assert.strictEqual(metrics[4].name, 'nodejs_eventloop_lag_stddev_seconds');
 
-		expect(metrics[5].help).toEqual(
+		assert.strictEqual(
+			metrics[5].help,
 			'The 50th percentile of the recorded event loop delays.',
 		);
-		expect(metrics[5].type).toEqual('gauge');
-		expect(metrics[5].name).toEqual('nodejs_eventloop_lag_p50_seconds');
+		assert.strictEqual(metrics[5].type, 'gauge');
+		assert.strictEqual(metrics[5].name, 'nodejs_eventloop_lag_p50_seconds');
 
-		expect(metrics[6].help).toEqual(
+		assert.strictEqual(
+			metrics[6].help,
 			'The 90th percentile of the recorded event loop delays.',
 		);
-		expect(metrics[6].type).toEqual('gauge');
-		expect(metrics[6].name).toEqual('nodejs_eventloop_lag_p90_seconds');
+		assert.strictEqual(metrics[6].type, 'gauge');
+		assert.strictEqual(metrics[6].name, 'nodejs_eventloop_lag_p90_seconds');
 
-		expect(metrics[7].help).toEqual(
+		assert.strictEqual(
+			metrics[7].help,
 			'The 99th percentile of the recorded event loop delays.',
 		);
-		expect(metrics[7].type).toEqual('gauge');
-		expect(metrics[7].name).toEqual('nodejs_eventloop_lag_p99_seconds');
+		assert.strictEqual(metrics[7].type, 'gauge');
+		assert.strictEqual(metrics[7].name, 'nodejs_eventloop_lag_p99_seconds');
 	});
 });
-
-async function wait(ms) {
-	await new Promise(resolve => setTimeout(resolve, ms));
-}

@@ -1,8 +1,13 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
+const errorMessages = require('./error-messages');
+
 const Registry = require('../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('counter with %s registry', (tag, regType) => {
@@ -24,36 +29,46 @@ describe.each([
 
 		it('should increment counter', async () => {
 			instance.inc();
-			expect((await instance.get()).values[0].value).toEqual(1);
+			assert.strictEqual((await instance.get()).values[0].value, 1);
 			instance.inc();
-			expect((await instance.get()).values[0].value).toEqual(2);
+			assert.strictEqual((await instance.get()).values[0].value, 2);
 			instance.inc(0);
-			expect((await instance.get()).values[0].value).toEqual(2);
+			assert.strictEqual((await instance.get()).values[0].value, 2);
 		});
 		it('should increment with a provided value', async () => {
 			instance.inc(100);
-			expect((await instance.get()).values[0].value).toEqual(100);
+			assert.strictEqual((await instance.get()).values[0].value, 100);
 		});
 		it('should not be possible to decrease a counter', () => {
 			const fn = function () {
 				instance.inc(-100);
 			};
-			expect(fn).toThrowErrorMatchingSnapshot();
+			try {
+				fn();
+				assert.fail('Expected function to throw');
+			} catch (error) {
+				assert.strictEqual(error.message, errorMessages.COUNTER_DECREASE_ERROR);
+			}
 		});
 		it('should throw an error when the value is not a number', () => {
 			const fn = () => {
 				instance.inc('3ms');
 			};
-			expect(fn).toThrowErrorMatchingSnapshot();
+			try {
+				fn();
+				assert.fail('Expected function to throw');
+			} catch (error) {
+				assert.strictEqual(error.message, errorMessages.INVALID_NUMBER('3ms'));
+			}
 		});
 		it('should handle incrementing with 0', async () => {
 			instance.inc(0);
-			expect((await instance.get()).values[0].value).toEqual(0);
+			assert.strictEqual((await instance.get()).values[0].value, 0);
 		});
 		it('should init counter to 0', async () => {
 			const values = (await instance.get()).values;
-			expect(values).toHaveLength(1);
-			expect(values[0].value).toEqual(0);
+			assert.strictEqual(values.length, 1);
+			assert.strictEqual(values[0].value, 0);
 		});
 
 		describe('labels', () => {
@@ -70,14 +85,14 @@ describe.each([
 				instance.labels('POST', '/test').inc();
 
 				const values = (await instance.get()).values;
-				expect(values).toHaveLength(2);
+				assert.strictEqual(values.length, 2);
 			});
 
 			it('should handle labels provided as an object', async () => {
 				instance.labels({ method: 'POST', endpoint: '/test' }).inc();
 				const values = (await instance.get()).values;
-				expect(values).toHaveLength(1);
-				expect(values[0].labels).toEqual({
+				assert.strictEqual(values.length, 1);
+				assert.deepStrictEqual(values[0].labels, {
 					method: 'POST',
 					endpoint: '/test',
 				});
@@ -88,20 +103,33 @@ describe.each([
 				instance.inc({ method: 'POST', endpoint: '/test' });
 
 				const values = (await instance.get()).values;
-				expect(values).toHaveLength(2);
+				assert.strictEqual(values.length, 2);
 			});
 
 			it('should throw error if label lengths does not match', () => {
 				const fn = function () {
 					instance.labels('GET').inc();
 				};
-				expect(fn).toThrowErrorMatchingSnapshot();
+				try {
+					fn();
+					assert.fail('Expected function to throw');
+				} catch (error) {
+					assert.strictEqual(
+						error.message,
+						errorMessages.INVALID_LABEL_ARGUMENTS(
+							1,
+							'GET',
+							2,
+							'method, endpoint',
+						),
+					);
+				}
 			});
 
 			it('should increment label value with provided value', async () => {
 				instance.labels('GET', '/test').inc(100);
 				const values = (await instance.get()).values;
-				expect(values[0].value).toEqual(100);
+				assert.strictEqual(values[0].value, 100);
 			});
 		});
 	});
@@ -125,19 +153,19 @@ describe.each([
 			instance.remove('POST', '/test');
 
 			const values = (await instance.get()).values;
-			expect(values).toHaveLength(1);
-			expect(values[0].value).toEqual(1);
-			expect(values[0].labels.method).toEqual('GET');
-			expect(values[0].labels.endpoint).toEqual('/test');
-			expect(values[0].timestamp).toEqual(undefined);
+			assert.strictEqual(values.length, 1);
+			assert.strictEqual(values[0].value, 1);
+			assert.strictEqual(values[0].labels.method, 'GET');
+			assert.strictEqual(values[0].labels.endpoint, '/test');
+			assert.strictEqual(values[0].timestamp, undefined);
 		});
 
 		it('should remove by labels object', async () => {
 			instance.remove({ method: 'POST', endpoint: '/test' });
 
 			const values = (await instance.get()).values;
-			expect(values).toHaveLength(1);
-			expect(values[0].labels).toEqual({
+			assert.strictEqual(values.length, 1);
+			assert.deepStrictEqual(values[0].labels, {
 				method: 'GET',
 				endpoint: '/test',
 			});
@@ -147,14 +175,27 @@ describe.each([
 			instance.remove('GET', '/test');
 			instance.remove('POST', '/test');
 
-			expect((await instance.get()).values).toHaveLength(0);
+			assert.strictEqual((await instance.get()).values.length, 0);
 		});
 
 		it('should throw error if label lengths does not match', () => {
 			const fn = function () {
 				instance.remove('GET');
 			};
-			expect(fn).toThrowErrorMatchingSnapshot();
+			try {
+				fn();
+				assert.fail('Expected function to throw');
+			} catch (error) {
+				assert.strictEqual(
+					error.message,
+					errorMessages.INVALID_LABEL_ARGUMENTS(
+						1,
+						'GET',
+						2,
+						'method, endpoint',
+					),
+				);
+			}
 		});
 	});
 
@@ -168,9 +209,9 @@ describe.each([
 		});
 		it('should increment counter', async () => {
 			instance.inc();
-			expect((await globalRegistry.getMetricsAsJSON()).length).toEqual(0);
-			expect((await instance.get()).values[0].value).toEqual(1);
-			expect((await instance.get()).values[0].timestamp).toEqual(undefined);
+			assert.strictEqual((await globalRegistry.getMetricsAsJSON()).length, 0);
+			assert.strictEqual((await instance.get()).values[0].value, 1);
+			assert.strictEqual((await instance.get()).values[0].timestamp, undefined);
 		});
 	});
 	describe('registry instance', () => {
@@ -185,10 +226,10 @@ describe.each([
 		});
 		it('should increment counter', async () => {
 			instance.inc();
-			expect((await globalRegistry.getMetricsAsJSON()).length).toEqual(0);
-			expect((await registryInstance.getMetricsAsJSON()).length).toEqual(1);
-			expect((await instance.get()).values[0].value).toEqual(1);
-			expect((await instance.get()).values[0].timestamp).toEqual(undefined);
+			assert.strictEqual((await globalRegistry.getMetricsAsJSON()).length, 0);
+			assert.strictEqual((await registryInstance.getMetricsAsJSON()).length, 1);
+			assert.strictEqual((await instance.get()).values[0].value, 1);
+			assert.strictEqual((await instance.get()).values[0].timestamp, undefined);
 		});
 	});
 	describe('counter reset', () => {
@@ -202,13 +243,13 @@ describe.each([
 			});
 
 			instance.inc(12);
-			expect((await instance.get()).values[0].value).toEqual(12);
+			assert.strictEqual((await instance.get()).values[0].value, 12);
 
 			instance.reset();
-			expect((await instance.get()).values[0].value).toEqual(0);
+			assert.strictEqual((await instance.get()).values[0].value, 0);
 
 			instance.inc(10);
-			expect((await instance.get()).values[0].value).toEqual(10);
+			assert.strictEqual((await instance.get()).values[0].value, 10);
 		});
 		it('should reset the counter, incl labels', async () => {
 			const instance = new Counter({
@@ -218,18 +259,24 @@ describe.each([
 			});
 
 			instance.inc({ serial: '12345', active: 'yes' }, 12);
-			expect((await instance.get()).values[0].value).toEqual(12);
-			expect((await instance.get()).values[0].labels.serial).toEqual('12345');
-			expect((await instance.get()).values[0].labels.active).toEqual('yes');
+			assert.strictEqual((await instance.get()).values[0].value, 12);
+			assert.strictEqual(
+				(await instance.get()).values[0].labels.serial,
+				'12345',
+			);
+			assert.strictEqual((await instance.get()).values[0].labels.active, 'yes');
 
 			instance.reset();
 
-			expect((await instance.get()).values).toEqual([]);
+			assert.deepStrictEqual((await instance.get()).values, []);
 
 			instance.inc({ serial: '12345', active: 'no' }, 10);
-			expect((await instance.get()).values[0].value).toEqual(10);
-			expect((await instance.get()).values[0].labels.serial).toEqual('12345');
-			expect((await instance.get()).values[0].labels.active).toEqual('no');
+			assert.strictEqual((await instance.get()).values[0].value, 10);
+			assert.strictEqual(
+				(await instance.get()).values[0].labels.serial,
+				'12345',
+			);
+			assert.strictEqual((await instance.get()).values[0].labels.active, 'no');
 		});
 	});
 });

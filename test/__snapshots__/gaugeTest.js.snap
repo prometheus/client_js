@@ -1,5 +1,0 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
-
-exports[`gauge with OpenMetrics registry global registry with parameters as object should not allow non numbers 1`] = `"Value is not a valid number: asd"`;
-
-exports[`gauge with Prometheus registry global registry with parameters as object should not allow non numbers 1`] = `"Value is not a valid number: asd"`;

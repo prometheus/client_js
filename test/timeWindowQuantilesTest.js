@@ -1,21 +1,28 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const { timers } = require('./helpers');
+
 describe('timeWindowQuantiles', () => {
 	const TimeWindowQuantiles = require('../lib/timeWindowQuantiles');
 	let instance;
-	let clock;
 
 	beforeEach(() => {
-		jest.useFakeTimers('modern');
-		jest.setSystemTime(0);
+		timers.useFakeTimers();
+		timers.setSystemTime(0);
 		instance = new TimeWindowQuantiles(5, 5);
+	});
+
+	afterEach(() => {
+		timers.useRealTimers();
 	});
 
 	describe('methods', () => {
 		it('#push', () => {
 			instance.push(1);
 			instance.ringBuffer.forEach(td => {
-				expect(td.centroids.size).toEqual(1);
+				assert.strictEqual(td.centroids.size, 1);
 			});
 		});
 
@@ -23,7 +30,7 @@ describe('timeWindowQuantiles', () => {
 			instance.push(1);
 			instance.reset();
 			instance.ringBuffer.forEach(td => {
-				expect(td.centroids.size).toEqual(0);
+				assert.strictEqual(td.centroids.size, 0);
 			});
 		});
 
@@ -31,47 +38,47 @@ describe('timeWindowQuantiles', () => {
 			instance.push(1);
 			instance.compress();
 			instance.ringBuffer.forEach(td => {
-				expect(td.centroids.size).toEqual(1);
+				assert.strictEqual(td.centroids.size, 1);
 			});
 		});
 
 		it('#percentile', () => {
 			instance.push(1);
-			expect(instance.percentile(0.5)).toEqual(1);
+			assert.strictEqual(instance.percentile(0.5), 1);
 		});
 	});
 
 	describe('rotation', () => {
 		it('rotatation interval should be configured', () => {
 			let localInstance = new TimeWindowQuantiles(undefined, undefined);
-			expect(localInstance.durationBetweenRotatesMillis).toEqual(Infinity);
+			assert.strictEqual(localInstance.durationBetweenRotatesMillis, Infinity);
 			localInstance = new TimeWindowQuantiles(1, 1);
-			expect(localInstance.durationBetweenRotatesMillis).toEqual(1000);
+			assert.strictEqual(localInstance.durationBetweenRotatesMillis, 1000);
 			localInstance = new TimeWindowQuantiles(10, 5);
-			expect(localInstance.durationBetweenRotatesMillis).toEqual(2000);
+			assert.strictEqual(localInstance.durationBetweenRotatesMillis, 2000);
 		});
 
 		it('should rotate', () => {
 			instance.push(1);
-			expect(instance.currentBuffer).toEqual(0);
-			jest.advanceTimersByTime(1001);
+			assert.strictEqual(instance.currentBuffer, 0);
+			timers.advanceTimersByTime(1001);
 			instance.percentile(0.5);
-			expect(instance.currentBuffer).toEqual(1);
-			jest.advanceTimersByTime(1001);
+			assert.strictEqual(instance.currentBuffer, 1);
+			timers.advanceTimersByTime(1001);
 			instance.percentile(0.5);
-			expect(instance.currentBuffer).toEqual(2);
-			jest.advanceTimersByTime(1001);
+			assert.strictEqual(instance.currentBuffer, 2);
+			timers.advanceTimersByTime(1001);
 			instance.percentile(0.5);
-			expect(instance.currentBuffer).toEqual(3);
-			jest.advanceTimersByTime(1001);
+			assert.strictEqual(instance.currentBuffer, 3);
+			timers.advanceTimersByTime(1001);
 			instance.percentile(0.5);
-			expect(instance.currentBuffer).toEqual(4);
-			jest.advanceTimersByTime(1001);
+			assert.strictEqual(instance.currentBuffer, 4);
+			timers.advanceTimersByTime(1001);
 			instance.percentile(0.5);
-			expect(instance.currentBuffer).toEqual(0);
+			assert.strictEqual(instance.currentBuffer, 0);
 
 			instance.ringBuffer.forEach(td => {
-				expect(td.centroids.size).toEqual(0);
+				assert.strictEqual(td.centroids.size, 0);
 			});
 		});
 	});

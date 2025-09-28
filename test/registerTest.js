@@ -1,5 +1,9 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
+
 const Registry = require('../index').Registry;
 const register = require('../index').register;
 
@@ -8,18 +12,18 @@ describe('Register', () => {
 		'application/openmetrics-text; version=42.0.0; charset=utf-8';
 	const expectedContentTypeErrStr = `Content type ${contentTypeTestStr} is unsupported`;
 	it('should throw if set to an unsupported type', () => {
-		expect(() => {
+		assert.throws(() => {
 			register.setContentType(contentTypeTestStr);
-		}).toThrow(expectedContentTypeErrStr);
+		}, new Error(expectedContentTypeErrStr));
 	});
 
 	it('should throw if created with an unsupported type', () => {
-		expect(() => {
+		assert.throws(() => {
 			new Registry(contentTypeTestStr);
-		}).toThrow(expectedContentTypeErrStr);
+		}, new Error(expectedContentTypeErrStr));
 	});
 
-	describe.each([
+	describeEach([
 		['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 		['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 	])('with %s type', (tag, regType) => {
@@ -41,27 +45,35 @@ describe('Register', () => {
 			});
 
 			it('with help as first item', () => {
-				expect(output[0]).toEqual('# HELP test_metric A test metric');
+				assert.strictEqual(output[0], '# HELP test_metric A test metric');
 			});
 			it('with type as second item', () => {
-				expect(output[1]).toEqual('# TYPE test_metric counter');
+				assert.strictEqual(output[1], '# TYPE test_metric counter');
 			});
 			it('with first value of the metric as third item', () => {
 				if (register.contentType === Registry.OPENMETRICS_CONTENT_TYPE) {
-					expect(output[2]).toEqual(
+					assert.strictEqual(
+						output[2],
 						'test_metric_total{label="hello",code="303"} 12',
 					);
 				} else {
-					expect(output[2]).toEqual('test_metric{label="hello",code="303"} 12');
+					assert.strictEqual(
+						output[2],
+						'test_metric{label="hello",code="303"} 12',
+					);
 				}
 			});
 			it('with second value of the metric as fourth item', () => {
 				if (register.contentType === Registry.OPENMETRICS_CONTENT_TYPE) {
-					expect(output[3]).toEqual(
+					assert.strictEqual(
+						output[3],
 						'test_metric_total{label="bye",code="404"} 34',
 					);
 				} else {
-					expect(output[3]).toEqual('test_metric{label="bye",code="404"} 34');
+					assert.strictEqual(
+						output[3],
+						'test_metric{label="bye",code="404"} 34',
+					);
 				}
 			});
 		});
@@ -69,11 +81,9 @@ describe('Register', () => {
 		it('should throw on more than one metric', () => {
 			register.registerMetric(getMetric());
 
-			expect(() => {
+			assert.throws(() => {
 				register.registerMetric(getMetric());
-			}).toThrow(
-				'A metric with the name test_metric has already been registered.',
-			);
+			}, new Error('A metric with the name test_metric has already been registered.'));
 		});
 
 		it('should handle and output a metric with a NaN value', async () => {
@@ -93,11 +103,11 @@ describe('Register', () => {
 			});
 			const lines = (await register.metrics()).split('\n');
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(lines).toHaveLength(5);
+				assert.strictEqual(lines.length, 5);
 			} else {
-				expect(lines).toHaveLength(4);
+				assert.strictEqual(lines.length, 4);
 			}
-			expect(lines[2]).toEqual('test_metric Nan');
+			assert.strictEqual(lines[2], 'test_metric Nan');
 		});
 
 		it('should handle and output a metric with an +Infinity value', async () => {
@@ -117,11 +127,11 @@ describe('Register', () => {
 			});
 			const lines = (await register.metrics()).split('\n');
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(lines).toHaveLength(5);
+				assert.strictEqual(lines.length, 5);
 			} else {
-				expect(lines).toHaveLength(4);
+				assert.strictEqual(lines.length, 4);
 			}
-			expect(lines[2]).toEqual('test_metric +Inf');
+			assert.strictEqual(lines[2], 'test_metric +Inf');
 		});
 
 		it('should handle and output a metric with an -Infinity value', async () => {
@@ -141,11 +151,11 @@ describe('Register', () => {
 			});
 			const lines = (await register.metrics()).split('\n');
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(lines).toHaveLength(5);
+				assert.strictEqual(lines.length, 5);
 			} else {
-				expect(lines).toHaveLength(4);
+				assert.strictEqual(lines.length, 4);
 			}
-			expect(lines[2]).toEqual('test_metric -Inf');
+			assert.strictEqual(lines[2], 'test_metric -Inf');
 		});
 
 		it('should handle a metric without labels', async () => {
@@ -164,9 +174,9 @@ describe('Register', () => {
 				},
 			});
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect((await register.metrics()).split('\n')).toHaveLength(5);
+				assert.strictEqual((await register.metrics()).split('\n').length, 5);
 			} else {
-				expect((await register.metrics()).split('\n')).toHaveLength(4);
+				assert.strictEqual((await register.metrics()).split('\n').length, 4);
 			}
 		});
 
@@ -185,9 +195,12 @@ describe('Register', () => {
 
 			const output = (await register.metrics()).split('\n')[2];
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(output).toEqual('test_metric_total{testLabel="testValue"} 1');
+				assert.strictEqual(
+					output,
+					'test_metric_total{testLabel="testValue"} 1',
+				);
 			} else {
-				expect(output).toEqual('test_metric{testLabel="testValue"} 1');
+				assert.strictEqual(output, 'test_metric{testLabel="testValue"} 1');
 			}
 		});
 
@@ -213,11 +226,13 @@ describe('Register', () => {
 			});
 
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect((await register.metrics()).split('\n')[2]).toEqual(
+				assert.strictEqual(
+					(await register.metrics()).split('\n')[2],
 					'test_metric_total{testLabel="overlapped",anotherLabel="value123"} 1',
 				);
 			} else {
-				expect((await register.metrics()).split('\n')[2]).toEqual(
+				assert.strictEqual(
+					(await register.metrics()).split('\n')[2],
 					'test_metric{testLabel="overlapped",anotherLabel="value123"} 1',
 				);
 			}
@@ -234,7 +249,42 @@ describe('Register', () => {
 				});
 				new Summary({ name: 'summary', help: 'help' });
 
-				expect(await register.metrics()).toMatchSnapshot();
+				const expected = `# HELP counter help
+# TYPE counter counter
+counter_total 0
+# HELP gauge help
+# TYPE gauge gauge
+gauge 0
+# HELP histogram help
+# TYPE histogram histogram
+histogram_bucket{le="0.005"} 0
+histogram_bucket{le="0.01"} 0
+histogram_bucket{le="0.025"} 0
+histogram_bucket{le="0.05"} 0
+histogram_bucket{le="0.1"} 0
+histogram_bucket{le="0.25"} 0
+histogram_bucket{le="0.5"} 0
+histogram_bucket{le="1"} 0
+histogram_bucket{le="2.5"} 0
+histogram_bucket{le="5"} 0
+histogram_bucket{le="10"} 0
+histogram_bucket{le="+Inf"} 0
+histogram_sum 0
+histogram_count 0
+# HELP summary help
+# TYPE summary summary
+summary{quantile="0.01"} 0
+summary{quantile="0.05"} 0
+summary{quantile="0.5"} 0
+summary{quantile="0.9"} 0
+summary{quantile="0.95"} 0
+summary{quantile="0.99"} 0
+summary{quantile="0.999"} 0
+summary_sum 0
+summary_count 0
+# EOF
+`;
+				assert.strictEqual(await register.metrics(), expected);
 			});
 		} else {
 			it('should output all initialized metrics at value 0', async () => {
@@ -243,7 +293,44 @@ describe('Register', () => {
 				new Histogram({ name: 'histogram', help: 'help' });
 				new Summary({ name: 'summary', help: 'help' });
 
-				expect(await register.metrics()).toMatchSnapshot();
+				const expected = `# HELP counter help
+# TYPE counter counter
+counter 0
+
+# HELP gauge help
+# TYPE gauge gauge
+gauge 0
+
+# HELP histogram help
+# TYPE histogram histogram
+histogram_bucket{le="0.005"} 0
+histogram_bucket{le="0.01"} 0
+histogram_bucket{le="0.025"} 0
+histogram_bucket{le="0.05"} 0
+histogram_bucket{le="0.1"} 0
+histogram_bucket{le="0.25"} 0
+histogram_bucket{le="0.5"} 0
+histogram_bucket{le="1"} 0
+histogram_bucket{le="2.5"} 0
+histogram_bucket{le="5"} 0
+histogram_bucket{le="10"} 0
+histogram_bucket{le="+Inf"} 0
+histogram_sum 0
+histogram_count 0
+
+# HELP summary help
+# TYPE summary summary
+summary{quantile="0.01"} 0
+summary{quantile="0.05"} 0
+summary{quantile="0.5"} 0
+summary{quantile="0.9"} 0
+summary{quantile="0.95"} 0
+summary{quantile="0.99"} 0
+summary{quantile="0.999"} 0
+summary_sum 0
+summary_count 0
+`;
+				assert.strictEqual(await register.metrics(), expected);
 			});
 		}
 
@@ -257,7 +344,33 @@ describe('Register', () => {
 			});
 			new Summary({ name: 'summary', help: 'help', labelNames: ['label'] });
 
-			expect(await register.metrics()).toMatchSnapshot();
+			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
+				const expected = `# HELP counter help
+# TYPE counter counter
+# HELP gauge help
+# TYPE gauge gauge
+# HELP histogram help
+# TYPE histogram histogram
+# HELP summary help
+# TYPE summary summary
+# EOF
+`;
+				assert.strictEqual(await register.metrics(), expected);
+			} else {
+				const expected = `# HELP counter help
+# TYPE counter counter
+
+# HELP gauge help
+# TYPE gauge gauge
+
+# HELP histogram help
+# TYPE histogram histogram
+
+# HELP summary help
+# TYPE summary summary
+`;
+				assert.strictEqual(await register.metrics(), expected);
+			}
 		});
 
 		if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
@@ -277,7 +390,17 @@ describe('Register', () => {
 				});
 				new Summary({ name: 'summary', help: 'help', labelNames: ['label'] });
 
-				expect(await register.metrics()).toMatchSnapshot();
+				const expected = `# HELP counter help
+# TYPE counter counter
+# HELP gauge help
+# TYPE gauge gauge
+# HELP histogram help
+# TYPE histogram histogram
+# HELP summary help
+# TYPE summary summary
+# EOF
+`;
+				assert.strictEqual(await register.metrics(), expected);
 			});
 		}
 
@@ -296,10 +419,10 @@ describe('Register', () => {
 				escapedResult = await register.metrics();
 			});
 			it('backslash to \\\\', () => {
-				expect(escapedResult).toMatch(/\\\\/);
+				assert.match(escapedResult, /\\\\/);
 			});
 			it('newline to \\\\n', () => {
-				expect(escapedResult).toMatch(/\n/);
+				assert.match(escapedResult, /\n/);
 			});
 		});
 
@@ -323,7 +446,7 @@ describe('Register', () => {
 				},
 			});
 			const escapedResult = await register.metrics();
-			expect(escapedResult).toMatch(/\\"/);
+			assert.match(escapedResult, /\\"/);
 		});
 
 		describe('should output metrics as JSON', () => {
@@ -331,11 +454,11 @@ describe('Register', () => {
 				register.registerMetric(getMetric());
 				const output = await register.getMetricsAsJSON();
 
-				expect(output.length).toEqual(1);
-				expect(output[0].name).toEqual('test_metric');
-				expect(output[0].type).toEqual('counter');
-				expect(output[0].help).toEqual('A test metric');
-				expect(output[0].values.length).toEqual(2);
+				assert.strictEqual(output.length, 1);
+				assert.strictEqual(output[0].name, 'test_metric');
+				assert.strictEqual(output[0].type, 'counter');
+				assert.strictEqual(output[0].help, 'A test metric');
+				assert.strictEqual(output[0].values.length, 2);
 			});
 
 			it('should add default labels to JSON', async () => {
@@ -345,12 +468,12 @@ describe('Register', () => {
 				});
 				const output = await register.getMetricsAsJSON();
 
-				expect(output.length).toEqual(1);
-				expect(output[0].name).toEqual('test_metric');
-				expect(output[0].type).toEqual('counter');
-				expect(output[0].help).toEqual('A test metric');
-				expect(output[0].values.length).toEqual(2);
-				expect(output[0].values[0].labels).toEqual({
+				assert.strictEqual(output.length, 1);
+				assert.strictEqual(output[0].name, 'test_metric');
+				assert.strictEqual(output[0].type, 'counter');
+				assert.strictEqual(output[0].help, 'A test metric');
+				assert.strictEqual(output[0].values.length, 2);
+				assert.deepStrictEqual(output[0].values[0].labels, {
 					code: '303',
 					label: 'hello',
 					defaultRegistryLabel: 'testValue',
@@ -363,14 +486,14 @@ describe('Register', () => {
 			register.registerMetric(getMetric('some other name'));
 
 			let output = await register.getMetricsAsJSON();
-			expect(output.length).toEqual(2);
+			assert.strictEqual(output.length, 2);
 
 			register.removeSingleMetric('test_metric');
 
 			output = await register.getMetricsAsJSON();
 
-			expect(output.length).toEqual(1);
-			expect(output[0].name).toEqual('some other name');
+			assert.strictEqual(output.length, 1);
+			assert.strictEqual(output[0].name, 'some other name');
 		});
 
 		it('should allow getting single metrics', () => {
@@ -378,7 +501,7 @@ describe('Register', () => {
 			register.registerMetric(metric);
 
 			const output = register.getSingleMetric('test_metric');
-			expect(output).toEqual(metric);
+			assert.strictEqual(output, metric);
 		});
 
 		it('should allow getting metrics', async () => {
@@ -387,11 +510,13 @@ describe('Register', () => {
 			const metrics = await register.metrics();
 
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(metrics.split('\n')[3]).toEqual(
+				assert.strictEqual(
+					metrics.split('\n')[3],
 					'test_metric_total{label="bye",code="404"} 34',
 				);
 			} else {
-				expect(metrics.split('\n')[3]).toEqual(
+				assert.strictEqual(
+					metrics.split('\n')[3],
 					'test_metric{label="bye",code="404"} 34',
 				);
 			}
@@ -431,16 +556,16 @@ describe('Register', () => {
 				register.resetMetrics();
 
 				const same_counter = register.getSingleMetric('test_counter');
-				expect((await same_counter.get()).values).toEqual([]);
+				assert.deepStrictEqual((await same_counter.get()).values, []);
 
 				const same_gauge = register.getSingleMetric('test_gauge');
-				expect((await same_gauge.get()).values).toEqual([]);
+				assert.deepStrictEqual((await same_gauge.get()).values, []);
 
 				const same_histo = register.getSingleMetric('test_histo');
-				expect((await same_histo.get()).values).toEqual([]);
+				assert.deepStrictEqual((await same_histo.get()).values, []);
 
 				const same_summ = register.getSingleMetric('test_summ');
-				expect((await same_summ.get()).values[0].value).toEqual(0);
+				assert.strictEqual((await same_summ.get()).values[0].value, 0);
 			});
 		});
 
@@ -469,12 +594,14 @@ describe('Register', () => {
 						const metrics = await r.metrics();
 						const lines = metrics.split('\n');
 						if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-							expect(lines).toContain(
-								'my_counter_total{type="myType",env="development"} 1',
+							assert(
+								lines.includes(
+									'my_counter_total{type="myType",env="development"} 1',
+								),
 							);
 						} else {
-							expect(lines).toContain(
-								'my_counter{type="myType",env="development"} 1',
+							assert(
+								lines.includes('my_counter{type="myType",env="development"} 1'),
 							);
 						}
 
@@ -483,12 +610,16 @@ describe('Register', () => {
 						const metrics2 = await r.metrics();
 						const lines2 = metrics2.split('\n');
 						if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-							expect(lines2).toContain(
-								'my_counter_total{type="myType",env="development"} 2',
+							assert(
+								lines2.includes(
+									'my_counter_total{type="myType",env="development"} 2',
+								),
 							);
 						} else {
-							expect(lines2).toContain(
-								'my_counter{type="myType",env="development"} 2',
+							assert(
+								lines2.includes(
+									'my_counter{type="myType",env="development"} 2',
+								),
 							);
 						}
 					});
@@ -512,16 +643,16 @@ describe('Register', () => {
 
 						const metrics = await r.metrics();
 						const lines = metrics.split('\n');
-						expect(lines).toContain(
-							'my_gauge{type="myType",env="development"} 1',
+						assert(
+							lines.includes('my_gauge{type="myType",env="development"} 1'),
 						);
 
 						myGauge.inc(2);
 
 						const metrics2 = await r.metrics();
 						const lines2 = metrics2.split('\n');
-						expect(lines2).toContain(
-							'my_gauge{type="myType",env="development"} 3',
+						assert(
+							lines2.includes('my_gauge{type="myType",env="development"} 3'),
 						);
 					});
 
@@ -544,16 +675,20 @@ describe('Register', () => {
 
 						const metrics = await r.metrics();
 						const lines = metrics.split('\n');
-						expect(lines).toContain(
-							'my_histogram_bucket{le="1",env="development",type="myType"} 1',
+						assert(
+							lines.includes(
+								'my_histogram_bucket{le="1",env="development",type="myType"} 1',
+							),
 						);
 
 						myHist.observe(1);
 
 						const metrics2 = await r.metrics();
 						const lines2 = metrics2.split('\n');
-						expect(lines2).toContain(
-							'my_histogram_bucket{le="1",env="development",type="myType"} 2',
+						assert(
+							lines2.includes(
+								'my_histogram_bucket{le="1",env="development",type="myType"} 2',
+							),
 						);
 					});
 				});
@@ -577,34 +712,46 @@ describe('Register', () => {
 						myCounter.inc();
 
 						const metrics = await r.getMetricsAsJSON();
-						expect(metrics).toContainEqual({
-							aggregator: 'sum',
-							help: 'my counter',
-							name: 'my_counter',
-							type: 'counter',
-							values: [
-								{
-									labels: { env: 'development', type: 'myType' },
-									value: 1,
-								},
-							],
-						});
+						assert(
+							metrics.some(
+								m =>
+									JSON.stringify(m) ===
+									JSON.stringify({
+										aggregator: 'sum',
+										help: 'my counter',
+										name: 'my_counter',
+										type: 'counter',
+										values: [
+											{
+												labels: { env: 'development', type: 'myType' },
+												value: 1,
+											},
+										],
+									}),
+							),
+						);
 
 						myCounter.inc();
 
 						const metrics2 = await r.getMetricsAsJSON();
-						expect(metrics2).toContainEqual({
-							aggregator: 'sum',
-							help: 'my counter',
-							name: 'my_counter',
-							type: 'counter',
-							values: [
-								{
-									labels: { env: 'development', type: 'myType' },
-									value: 2,
-								},
-							],
-						});
+						assert(
+							metrics2.some(
+								m =>
+									JSON.stringify(m) ===
+									JSON.stringify({
+										aggregator: 'sum',
+										help: 'my counter',
+										name: 'my_counter',
+										type: 'counter',
+										values: [
+											{
+												labels: { env: 'development', type: 'myType' },
+												value: 2,
+											},
+										],
+									}),
+							),
+						);
 					});
 
 					it('should not throw with default labels (gauge)', async () => {
@@ -625,34 +772,46 @@ describe('Register', () => {
 						myGauge.inc(1);
 
 						const metrics = await r.getMetricsAsJSON();
-						expect(metrics).toContainEqual({
-							aggregator: 'sum',
-							help: 'my gauge',
-							name: 'my_gauge',
-							type: 'gauge',
-							values: [
-								{
-									labels: { env: 'development', type: 'myType' },
-									value: 1,
-								},
-							],
-						});
+						assert(
+							metrics.some(
+								m =>
+									JSON.stringify(m) ===
+									JSON.stringify({
+										aggregator: 'sum',
+										help: 'my gauge',
+										name: 'my_gauge',
+										type: 'gauge',
+										values: [
+											{
+												labels: { env: 'development', type: 'myType' },
+												value: 1,
+											},
+										],
+									}),
+							),
+						);
 
 						myGauge.inc(2);
 
 						const metrics2 = await r.getMetricsAsJSON();
-						expect(metrics2).toContainEqual({
-							aggregator: 'sum',
-							help: 'my gauge',
-							name: 'my_gauge',
-							type: 'gauge',
-							values: [
-								{
-									labels: { env: 'development', type: 'myType' },
-									value: 3,
-								},
-							],
-						});
+						assert(
+							metrics2.some(
+								m =>
+									JSON.stringify(m) ===
+									JSON.stringify({
+										aggregator: 'sum',
+										help: 'my gauge',
+										name: 'my_gauge',
+										type: 'gauge',
+										values: [
+											{
+												labels: { env: 'development', type: 'myType' },
+												value: 3,
+											},
+										],
+									}),
+							),
+						);
 					});
 
 					it('should not throw with default labels (histogram)', async () => {
@@ -674,23 +833,35 @@ describe('Register', () => {
 
 						const metrics = await r.getMetricsAsJSON();
 						// NOTE: at this test we don't need to check exact JSON schema
-						expect(metrics[0].values).toContainEqual({
-							exemplar: null,
-							labels: { env: 'development', le: 1, type: 'myType' },
-							metricName: 'my_histogram_bucket',
-							value: 1,
-						});
+						assert(
+							metrics[0].values.some(
+								v =>
+									JSON.stringify(v) ===
+									JSON.stringify({
+										exemplar: null,
+										labels: { env: 'development', le: 1, type: 'myType' },
+										metricName: 'my_histogram_bucket',
+										value: 1,
+									}),
+							),
+						);
 
 						myHist.observe(1);
 
 						const metrics2 = await r.getMetricsAsJSON();
 						// NOTE: at this test we don't need to check exact JSON schema
-						expect(metrics2[0].values).toContainEqual({
-							exemplar: null,
-							labels: { env: 'development', le: 1, type: 'myType' },
-							metricName: 'my_histogram_bucket',
-							value: 2,
-						});
+						assert(
+							metrics2[0].values.some(
+								v =>
+									JSON.stringify(v) ===
+									JSON.stringify({
+										exemplar: null,
+										labels: { env: 'development', le: 1, type: 'myType' },
+										metricName: 'my_histogram_bucket',
+										value: 2,
+									}),
+							),
+						);
 					});
 				});
 			});
@@ -714,31 +885,25 @@ describe('Register', () => {
 					registryOne,
 					registryTwo,
 				]).getMetricsAsJSON();
-				expect(merged).toHaveLength(2);
+				assert.strictEqual(merged.length, 2);
 			});
 
 			it('should throw if same name exists on both registers', () => {
 				registryOne.registerMetric(getMetric());
 				registryTwo.registerMetric(getMetric());
 
-				const fn = function () {
+				assert.throws(() => {
 					Registry.merge([registryOne, registryTwo]);
-				};
-
-				expect(fn).toThrow(Error);
+				}, Error);
 			});
 
 			it('should throw if merging different types of registers', () => {
 				registryOne.setContentType(Registry.PROMETHEUS_CONTENT_TYPE);
 				registryTwo.setContentType(Registry.OPENMETRICS_CONTENT_TYPE);
 
-				const fn = function () {
+				assert.throws(() => {
 					Registry.merge([registryOne, registryTwo]);
-				};
-
-				expect(fn).toThrow(
-					'Registers can only be merged if they have the same content type',
-				);
+				}, new Error('Registers can only be merged if they have the same content type'));
 			});
 		});
 

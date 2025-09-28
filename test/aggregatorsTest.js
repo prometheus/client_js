@@ -1,5 +1,8 @@
 'use strict';
 
+const { describe, it } = require('node:test');
+const assert = require('node:assert');
+
 describe('aggregators', () => {
 	const aggregators = require('../index').aggregators;
 	const metrics = [
@@ -26,10 +29,10 @@ describe('aggregators', () => {
 	describe('sum', () => {
 		it('properly sums values', () => {
 			const result = aggregators.sum(metrics);
-			expect(result.help).toBe('metric_help');
-			expect(result.name).toBe('metric_name');
-			expect(result.type).toBe('does not matter');
-			expect(result.values).toEqual([
+			assert.strictEqual(result.help, 'metric_help');
+			assert.strictEqual(result.name, 'metric_name');
+			assert.strictEqual(result.type, 'does not matter');
+			assert.deepStrictEqual(result.values, [
 				{ value: 4, labels: [] },
 				{ value: 6, labels: ['label1'] },
 			]);
@@ -39,10 +42,10 @@ describe('aggregators', () => {
 	describe('first', () => {
 		it('takes the first value', () => {
 			const result = aggregators.first(metrics);
-			expect(result.help).toBe('metric_help');
-			expect(result.name).toBe('metric_name');
-			expect(result.type).toBe('does not matter');
-			expect(result.values).toEqual([
+			assert.strictEqual(result.help, 'metric_help');
+			assert.strictEqual(result.name, 'metric_name');
+			assert.strictEqual(result.type, 'does not matter');
+			assert.deepStrictEqual(result.values, [
 				{ value: 1, labels: [] },
 				{ value: 2, labels: ['label1'] },
 			]);
@@ -52,17 +55,17 @@ describe('aggregators', () => {
 	describe('omit', () => {
 		it('returns undefined', () => {
 			const result = aggregators.omit(metrics);
-			expect(result).toBeUndefined();
+			assert.strictEqual(result, undefined);
 		});
 	});
 
 	describe('average', () => {
 		it('properly averages values', () => {
 			const result = aggregators.average(metrics);
-			expect(result.help).toBe('metric_help');
-			expect(result.name).toBe('metric_name');
-			expect(result.type).toBe('does not matter');
-			expect(result.values).toEqual([
+			assert.strictEqual(result.help, 'metric_help');
+			assert.strictEqual(result.name, 'metric_name');
+			assert.strictEqual(result.type, 'does not matter');
+			assert.deepStrictEqual(result.values, [
 				{ value: 2, labels: [] },
 				{ value: 3, labels: ['label1'] },
 			]);
@@ -72,10 +75,10 @@ describe('aggregators', () => {
 	describe('min', () => {
 		it('takes the minimum of the values', () => {
 			const result = aggregators.min(metrics);
-			expect(result.help).toBe('metric_help');
-			expect(result.name).toBe('metric_name');
-			expect(result.type).toBe('does not matter');
-			expect(result.values).toEqual([
+			assert.strictEqual(result.help, 'metric_help');
+			assert.strictEqual(result.name, 'metric_name');
+			assert.strictEqual(result.type, 'does not matter');
+			assert.deepStrictEqual(result.values, [
 				{ value: 1, labels: [] },
 				{ value: 2, labels: ['label1'] },
 			]);
@@ -85,10 +88,10 @@ describe('aggregators', () => {
 	describe('max', () => {
 		it('takes the maximum of the values', () => {
 			const result = aggregators.max(metrics);
-			expect(result.help).toBe('metric_help');
-			expect(result.name).toBe('metric_name');
-			expect(result.type).toBe('does not matter');
-			expect(result.values).toEqual([
+			assert.strictEqual(result.help, 'metric_help');
+			assert.strictEqual(result.name, 'metric_name');
+			assert.strictEqual(result.type, 'does not matter');
+			assert.deepStrictEqual(result.values, [
 				{ value: 3, labels: [] },
 				{ value: 4, labels: ['label1'] },
 			]);
@@ -118,7 +121,7 @@ describe('aggregators', () => {
 				},
 			];
 			const result = aggregators.sum(metrics2);
-			expect(result.values).toEqual([
+			assert.deepStrictEqual(result.values, [
 				{ value: 4, labels: [], metricName: 'abc' },
 				{ value: 5, labels: [], metricName: 'def' },
 			]);

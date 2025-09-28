@@ -1,11 +1,15 @@
 'use strict';
 
+const { describe, it, beforeEach, afterEach, after } = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
+
 const nock = require('nock');
 const { gzipSync } = require('zlib');
 
 const Registry = require('../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('pushgateway with %s registry', (tag, regType) => {
@@ -33,7 +37,7 @@ describe.each([
 					.reply(200);
 
 				return instance.pushAdd({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
@@ -48,7 +52,7 @@ describe.each([
 						groupings: { key: 'value' },
 					})
 					.then(() => {
-						expect(mockHttp.isDone());
+						assert.strictEqual(mockHttp.isDone(), true);
 					});
 			});
 
@@ -63,38 +67,41 @@ describe.each([
 						groupings: { key: 'va&lue' },
 					})
 					.then(() => {
-						expect(mockHttp.isDone());
+						assert.strictEqual(mockHttp.isDone(), true);
 					});
 			});
 
-			it('should throw an error if the push failed', () => {
+			it('should throw an error if the push failed', async () => {
 				nock('http://192.168.99.100:9091')
 					.post('/metrics/job/testJob/key/value', body)
 					.reply(400);
 
-				return expect(
-					instance.pushAdd({
+				try {
+					await instance.pushAdd({
 						jobName: 'testJob',
 						groupings: { key: 'value' },
-					}),
-				).rejects.toThrow('push failed with status 400');
+					});
+					assert.fail('Expected promise to reject');
+				} catch (error) {
+					assert.strictEqual(error.message, 'push failed with status 400, ');
+				}
 			});
 
-			it('should timeout when taking too long', () => {
+			it('should timeout when taking too long', async () => {
 				const mockHttp = nock('http://192.168.99.100:9091')
 					.post('/metrics/job/testJob/key/va%26lue', body)
 					.delay(100)
 					.reply(200);
 
-				expect.assertions(1);
-				return instance
-					.pushAdd({
+				try {
+					await instance.pushAdd({
 						jobName: 'testJob',
 						groupings: { key: 'va&lue' },
-					})
-					.catch(err => {
-						expect(err.message).toStrictEqual('Pushgateway request timed out');
 					});
+					assert.fail('Expected promise to reject');
+				} catch (err) {
+					assert.strictEqual(err.message, 'Pushgateway request timed out');
+				}
 			});
 
 			it('should be possible to configure for gravel gateway integration (no job name required in path)', async () => {
@@ -111,7 +118,9 @@ describe.each([
 					registry,
 				);
 
-				return instance.pushAdd().then(() => expect(mockHttp.isDone()));
+				return instance
+					.pushAdd()
+					.then(() => assert.strictEqual(mockHttp.isDone(), true));
 			});
 		});
 
@@ -122,7 +131,7 @@ describe.each([
 					.reply(200);
 
 				return instance.push({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
@@ -132,33 +141,38 @@ describe.each([
 					.reply(200);
 
 				return instance.push({ jobName: 'test&Job' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
-			it('should throw an error if the push failed', () => {
+			it('should throw an error if the push failed', async () => {
 				nock('http://192.168.99.100:9091')
 					.put('/metrics/job/testJob/key/value', body)
 					.reply(400);
 
-				return expect(
-					instance.push({
+				try {
+					await instance.push({
 						jobName: 'testJob',
 						groupings: { key: 'value' },
-					}),
-				).rejects.toThrow('push failed with status 400');
+					});
+					assert.fail('Expected promise to reject');
+				} catch (error) {
+					assert.strictEqual(error.message, 'push failed with status 400, ');
+				}
 			});
 
-			it('should timeout when taking too long', () => {
+			it('should timeout when taking too long', async () => {
 				const mockHttp = nock('http://192.168.99.100:9091')
 					.put('/metrics/job/test%26Job', body)
 					.delay(100)
 					.reply(200);
 
-				expect.assertions(1);
-				return instance.push({ jobName: 'test&Job' }).catch(err => {
-					expect(err.message).toStrictEqual('Pushgateway request timed out');
-				});
+				try {
+					await instance.push({ jobName: 'test&Job' });
+					assert.fail('Expected promise to reject');
+				} catch (err) {
+					assert.strictEqual(err.message, 'Pushgateway request timed out');
+				}
 			});
 		});
 
@@ -169,30 +183,35 @@ describe.each([
 					.reply(200);
 
 				return instance.delete({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
-			it('should throw an error if the push failed', () => {
+			it('should throw an error if the push failed', async () => {
 				nock('http://192.168.99.100:9091')
 					.delete('/metrics/job/testJob')
 					.reply(400);
 
-				return expect(instance.delete({ jobName: 'testJob' })).rejects.toThrow(
-					'push failed with status 400',
-				);
+				try {
+					await instance.delete({ jobName: 'testJob' });
+					assert.fail('Expected promise to reject');
+				} catch (error) {
+					assert.strictEqual(error.message, 'push failed with status 400, ');
+				}
 			});
 
-			it('should timeout when taking too long', () => {
+			it('should timeout when taking too long', async () => {
 				const mockHttp = nock('http://192.168.99.100:9091')
 					.delete('/metrics/job/testJob')
 					.delay(100)
 					.reply(200);
 
-				expect.assertions(1);
-				return instance.delete({ jobName: 'testJob' }).catch(err => {
-					expect(err.message).toStrictEqual('Pushgateway request timed out');
-				});
+				try {
+					await instance.delete({ jobName: 'testJob' });
+					assert.fail('Expected promise to reject');
+				} catch (err) {
+					assert.strictEqual(err.message, 'Pushgateway request timed out');
+				}
 			});
 		});
 
@@ -215,7 +234,7 @@ describe.each([
 					.reply(200);
 
 				return instance.pushAdd({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
@@ -225,7 +244,7 @@ describe.each([
 					.reply(200);
 
 				return instance.push({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 
@@ -235,7 +254,7 @@ describe.each([
 					.reply(200);
 
 				return instance.delete({ jobName: 'testJob' }).then(() => {
-					expect(mockHttp.isDone());
+					assert.strictEqual(mockHttp.isDone(), true);
 				});
 			});
 		});
@@ -260,7 +279,7 @@ describe.each([
 			);
 
 			return instance.push({ jobName: 'testJob' }).then(() => {
-				expect(mockHttp.isDone());
+				assert.strictEqual(mockHttp.isDone(), true);
 			});
 		});
 
@@ -284,7 +303,7 @@ describe.each([
 			);
 
 			return instance.pushAdd({ jobName: 'testJob' }).then(() => {
-				expect(mockHttp.isDone());
+				assert.strictEqual(mockHttp.isDone(), true);
 			});
 		});
 	};

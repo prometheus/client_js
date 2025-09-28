@@ -1,8 +1,18 @@
 'use strict';
 
+const {
+	describe,
+	it,
+	beforeEach,
+	afterEach,
+	before,
+	after,
+} = require('node:test');
+const assert = require('node:assert');
+const { describeEach } = require('./helpers');
 const Registry = require('../index').Registry;
 
-describe.each([
+describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
 ])('collectDefaultMetrics with %s registry', (tag, regType) => {
@@ -10,7 +20,7 @@ describe.each([
 	const collectDefaultMetrics = require('../index').collectDefaultMetrics;
 	let cpuUsage;
 
-	beforeAll(() => {
+	before(() => {
 		cpuUsage = process.cpuUsage;
 
 		if (cpuUsage) {
@@ -28,7 +38,7 @@ describe.each([
 		register.clear();
 	});
 
-	afterAll(() => {
+	after(() => {
 		if (cpuUsage) {
 			Object.defineProperty(process, 'cpuUsage', {
 				value: cpuUsage,
@@ -47,28 +57,28 @@ describe.each([
 	});
 
 	it('should add metrics to the registry', async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 		collectDefaultMetrics();
-		expect(await register.getMetricsAsJSON()).not.toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length !== 0, true);
 	});
 
 	it('should allow blacklisting all metrics', async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 		clearInterval(collectDefaultMetrics());
 		register.clear();
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 	});
 
 	it('should prefix metric names when configured', async () => {
 		collectDefaultMetrics({ prefix: 'some_prefix_' });
-		expect(await register.getMetricsAsJSON()).not.toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length !== 0, true);
 		for (const metric of await register.getMetricsAsJSON()) {
-			expect(metric.name.substring(0, 12)).toEqual('some_prefix_');
+			assert.strictEqual(metric.name.substring(0, 12), 'some_prefix_');
 		}
 	});
 
 	it('should apply labels to metrics when configured', async () => {
-		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 
 		const labels = { NODE_APP_INSTANCE: 0 };
 		collectDefaultMetrics({ labels });
@@ -84,10 +94,13 @@ describe.each([
 		// this varies between 45 and 47 depending on node handles - we just wanna
 		// assert there's at least one so we know the assertions in the loop below
 		// are executed
-		expect(allMetricValues.length).toBeGreaterThan(0);
+		assert.strictEqual(allMetricValues.length > 0, true);
 
 		allMetricValues.forEach(metricValue => {
-			expect(metricValue.labels).toMatchObject(labels);
+			// Check that metricValue.labels contains all labels from the labels object
+			for (const [key, value] of Object.entries(labels)) {
+				assert.strictEqual(metricValue.labels[key], value);
+			}
 		});
 	});
 
@@ -97,7 +110,8 @@ describe.each([
 				register.clear();
 			};
 
-			expect(fn).not.toThrow(Error);
+			// Should not throw
+			fn();
 		});
 	});
 
@@ -105,18 +119,27 @@ describe.each([
 		it('should allow to register metrics to custom registry', async () => {
 			const registry = new Registry(regType);
 
-			expect(await register.getMetricsAsJSON()).toHaveLength(0);
-			expect(await registry.getMetricsAsJSON()).toHaveLength(0);
+			assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
+			assert.strictEqual((await registry.getMetricsAsJSON()).length, 0);
 
 			collectDefaultMetrics();
 
-			expect(await register.getMetricsAsJSON()).not.toHaveLength(0);
-			expect(await registry.getMetricsAsJSON()).toHaveLength(0);
+			assert.strictEqual(
+				(await register.getMetricsAsJSON()).length !== 0,
+				true,
+			);
+			assert.strictEqual((await registry.getMetricsAsJSON()).length, 0);
 
 			collectDefaultMetrics({ register: registry });
 
-			expect(await register.getMetricsAsJSON()).not.toHaveLength(0);
-			expect(await registry.getMetricsAsJSON()).not.toHaveLength(0);
+			assert.strictEqual(
+				(await register.getMetricsAsJSON()).length !== 0,
+				true,
+			);
+			assert.strictEqual(
+				(await registry.getMetricsAsJSON()).length !== 0,
+				true,
+			);
 		});
 	});
 });
