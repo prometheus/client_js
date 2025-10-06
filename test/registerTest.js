@@ -20,7 +20,7 @@ describe('Register', () => {
 	it('should throw if created with an unsupported type', () => {
 		assert.throws(() => {
 			new Registry(contentTypeTestStr);
-		}, new Error(expectedContentTypeErrStr));
+		}, new TypeError(expectedContentTypeErrStr));
 	});
 
 	describeEach([
@@ -712,46 +712,38 @@ summary_count 0
 						myCounter.inc();
 
 						const metrics = await r.getMetricsAsJSON();
-						assert(
-							metrics.some(
-								m =>
-									JSON.stringify(m) ===
-									JSON.stringify({
-										aggregator: 'sum',
-										help: 'my counter',
-										name: 'my_counter',
-										type: 'counter',
-										values: [
-											{
-												labels: { env: 'development', type: 'myType' },
-												value: 1,
-											},
-										],
-									}),
-							),
-						);
+						const expectedMetric = {
+							aggregator: 'sum',
+							help: 'my counter',
+							name: 'my_counter',
+							type: 'counter',
+							values: [
+								{
+									labels: { env: 'development', type: 'myType' },
+									value: 1,
+								},
+							],
+						};
+						const foundMetric = metrics.find(m => m.name === 'my_counter');
+						assert.deepStrictEqual(foundMetric, expectedMetric);
 
 						myCounter.inc();
 
 						const metrics2 = await r.getMetricsAsJSON();
-						assert(
-							metrics2.some(
-								m =>
-									JSON.stringify(m) ===
-									JSON.stringify({
-										aggregator: 'sum',
-										help: 'my counter',
-										name: 'my_counter',
-										type: 'counter',
-										values: [
-											{
-												labels: { env: 'development', type: 'myType' },
-												value: 2,
-											},
-										],
-									}),
-							),
-						);
+						const expectedMetric2 = {
+							aggregator: 'sum',
+							help: 'my counter',
+							name: 'my_counter',
+							type: 'counter',
+							values: [
+								{
+									labels: { env: 'development', type: 'myType' },
+									value: 2,
+								},
+							],
+						};
+						const foundMetric2 = metrics2.find(m => m.name === 'my_counter');
+						assert.deepStrictEqual(foundMetric2, expectedMetric2);
 					});
 
 					it('should not throw with default labels (gauge)', async () => {
@@ -772,46 +764,38 @@ summary_count 0
 						myGauge.inc(1);
 
 						const metrics = await r.getMetricsAsJSON();
-						assert(
-							metrics.some(
-								m =>
-									JSON.stringify(m) ===
-									JSON.stringify({
-										aggregator: 'sum',
-										help: 'my gauge',
-										name: 'my_gauge',
-										type: 'gauge',
-										values: [
-											{
-												labels: { env: 'development', type: 'myType' },
-												value: 1,
-											},
-										],
-									}),
-							),
-						);
+						const expectedMetric = {
+							aggregator: 'sum',
+							help: 'my gauge',
+							name: 'my_gauge',
+							type: 'gauge',
+							values: [
+								{
+									labels: { env: 'development', type: 'myType' },
+									value: 1,
+								},
+							],
+						};
+						const foundMetric = metrics.find(m => m.name === 'my_gauge');
+						assert.deepStrictEqual(foundMetric, expectedMetric);
 
 						myGauge.inc(2);
 
 						const metrics2 = await r.getMetricsAsJSON();
-						assert(
-							metrics2.some(
-								m =>
-									JSON.stringify(m) ===
-									JSON.stringify({
-										aggregator: 'sum',
-										help: 'my gauge',
-										name: 'my_gauge',
-										type: 'gauge',
-										values: [
-											{
-												labels: { env: 'development', type: 'myType' },
-												value: 3,
-											},
-										],
-									}),
-							),
-						);
+						const expectedMetric2 = {
+							aggregator: 'sum',
+							help: 'my gauge',
+							name: 'my_gauge',
+							type: 'gauge',
+							values: [
+								{
+									labels: { env: 'development', type: 'myType' },
+									value: 3,
+								},
+							],
+						};
+						const foundMetric2 = metrics2.find(m => m.name === 'my_gauge');
+						assert.deepStrictEqual(foundMetric2, expectedMetric2);
 					});
 
 					it('should not throw with default labels (histogram)', async () => {
@@ -833,35 +817,37 @@ summary_count 0
 
 						const metrics = await r.getMetricsAsJSON();
 						// NOTE: at this test we don't need to check exact JSON schema
-						assert(
-							metrics[0].values.some(
-								v =>
-									JSON.stringify(v) ===
-									JSON.stringify({
-										exemplar: null,
-										labels: { env: 'development', le: 1, type: 'myType' },
-										metricName: 'my_histogram_bucket',
-										value: 1,
-									}),
-							),
+						const expectedValue = {
+							exemplar: null,
+							labels: { env: 'development', le: 1, type: 'myType' },
+							metricName: 'my_histogram_bucket',
+							value: 1,
+						};
+						const foundValue = metrics[0].values.find(
+							v =>
+								v.metricName === 'my_histogram_bucket' &&
+								v.labels.le === 1 &&
+								v.labels.type === 'myType',
 						);
+						assert.deepStrictEqual(foundValue, expectedValue);
 
 						myHist.observe(1);
 
 						const metrics2 = await r.getMetricsAsJSON();
 						// NOTE: at this test we don't need to check exact JSON schema
-						assert(
-							metrics2[0].values.some(
-								v =>
-									JSON.stringify(v) ===
-									JSON.stringify({
-										exemplar: null,
-										labels: { env: 'development', le: 1, type: 'myType' },
-										metricName: 'my_histogram_bucket',
-										value: 2,
-									}),
-							),
+						const expectedValue2 = {
+							exemplar: null,
+							labels: { env: 'development', le: 1, type: 'myType' },
+							metricName: 'my_histogram_bucket',
+							value: 2,
+						};
+						const foundValue2 = metrics2[0].values.find(
+							v =>
+								v.metricName === 'my_histogram_bucket' &&
+								v.labels.le === 1 &&
+								v.labels.type === 'myType',
 						);
+						assert.deepStrictEqual(foundValue2, expectedValue2);
 					});
 				});
 			});
