@@ -67,8 +67,6 @@ export default tseslint.config(
 				},
 			],
 
-			'prefer-template': 'error',
-
 			'jsdoc/informative-docs': 'off',
 		},
 	},
@@ -93,6 +91,7 @@ export default tseslint.config(
 			'no-unused-vars': 'off',
 			'no-shadow': 'off',
 			'no-unused-expressions': 'off',
+			'n/no-unsupported-features/node-builtins': 'off',
 		},
 	},
 	{

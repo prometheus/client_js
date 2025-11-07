@@ -13,7 +13,8 @@ const { describeEach } = require('../helpers');
 
 const Registry = require('../../index').Registry;
 
-// Note: This metric only works on Linux - process.platform check is handled in the metric implementation
+// Note: This metric only works on Linux - skip tests on other platforms
+const isLinux = process.platform === 'linux';
 
 describeEach([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
@@ -34,16 +35,20 @@ describeEach([
 		register.clear();
 	});
 
-	it(`should add metric to the ${tag} registry`, async () => {
-		assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
+	it(
+		`should add metric to the ${tag} registry`,
+		{ skip: !isLinux },
+		async () => {
+			assert.strictEqual((await register.getMetricsAsJSON()).length, 0);
 
-		processOpenFileDescriptors();
+			processOpenFileDescriptors();
 
-		const metrics = await register.getMetricsAsJSON();
+			const metrics = await register.getMetricsAsJSON();
 
-		assert.strictEqual(metrics.length, 1);
-		assert.strictEqual(metrics[0].help, 'Number of open file descriptors.');
-		assert.strictEqual(metrics[0].type, 'gauge');
-		assert.strictEqual(metrics[0].name, 'process_open_fds');
-	});
+			assert.strictEqual(metrics.length, 1);
+			assert.strictEqual(metrics[0].help, 'Number of open file descriptors.');
+			assert.strictEqual(metrics[0].type, 'gauge');
+			assert.strictEqual(metrics[0].name, 'process_open_fds');
+		},
+	);
 });
