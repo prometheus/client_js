@@ -31,6 +31,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - ci: switch out deprecated benchmark-regression library for replacement
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: update faceoff to 1.1
+- perf: Avoid array conversion in getMetricsAsJSON by directly iterating over metric values (~1.3% faster)
+- perf: Optimize string escaping for better metrics serialization
 
 ### Added
 
