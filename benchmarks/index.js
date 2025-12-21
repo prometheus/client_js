@@ -12,11 +12,10 @@ const debug = require('debug')('benchmark');
  * 2018, that situation is unlikely to change soon.
  */
 
-const currentClient = require('..');
 const benchmarks = new Benchmark({
 	'prom-client@latest': 'prom-client@latest',
 	'prom-client@trunk': 'git@github.com:siimon/prom-client',
-	'prom-client@current': currentClient,
+	'prom-client@current': { location: process.cwd() },
 });
 
 benchmarks.suite('counter', require('./counter'));
