@@ -38,4 +38,3 @@ exports.ClusterRegistry = require('./lib/cluster');
 exports.WorkerRegistry = require('./lib/worker');
 /** @deprecated */
 exports.AggregatorRegistry = exports.ClusterRegistry;
-exports[Symbol('util')] = require('./lib/util');

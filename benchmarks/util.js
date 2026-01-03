@@ -5,7 +5,7 @@ const Path = require('path');
 module.exports = setupUtilSuite;
 
 function setupUtilSuite(suite) {
-	const skip = ['prom-client@latest', 'prom-client@trunk'];
+	const skip = ['prom-client@latest'];
 
 	suite.add(
 		'hashObject',
