@@ -24,6 +24,7 @@ benchmarks.suite('histogram', require('./histogram'));
 benchmarks.suite('util', require('./util'));
 benchmarks.suite('summary', require('./summary'));
 benchmarks.suite('registry', require('./registry'));
+benchmarks.suite('default metrics', require('./defaultMetrics'));
 benchmarks.suite('cluster', require('./cluster'));
 
 benchmarks

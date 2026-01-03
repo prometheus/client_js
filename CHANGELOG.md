@@ -36,7 +36,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Expanded benchmarking code
+- Expanded benchmarks and using new benchmarking library
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
 
 ## [15.1.3] - 2024-06-27
