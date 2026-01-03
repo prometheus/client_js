@@ -13,7 +13,7 @@
 	},
 	"scripts": {
 		"benchmarks": "node --max-heap-size=5000 --allow-natives-syntax ./benchmarks/index.js",
-		"test": "npm run lint && npm run check-prettier && npm run compile-typescript && npm run test-unit -- --coverage",
+		"test": "npm run compile-typescript && npm run test-unit -- --coverage && npm run lint && npm run check-prettier",
 		"lint": "eslint .",
 		"test-unit": "jest",
 		"run-prettier": "prettier .",
