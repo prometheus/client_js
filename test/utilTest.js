@@ -88,8 +88,8 @@ describe('utils', () => {
 			it('can update existing values', () => {
 				const map = new LabelMap(['b', 'c', 'a']);
 
-				// And supports chaining
-				map.set({ a: 2 }, 3).set({ a: 2 }, 4);
+				map.set({ a: 2 }, 3);
+				map.set({ a: 2 }, 4);
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
@@ -100,7 +100,8 @@ describe('utils', () => {
 			it('creates separate records for each label combination', () => {
 				const map = new LabelMap(['b', 'c', 'a']);
 
-				map.set({ a: 2 }, 22).set({ a: 3 }, 3);
+				map.set({ a: 2 }, 22);
+				map.set({ a: 3 }, 3);
 
 				expect(map.size).toEqual(2);
 				expect(Array.from(map.values())).toStrictEqual([
@@ -113,6 +114,17 @@ describe('utils', () => {
 						labels: { a: 3 },
 					},
 				]);
+			});
+
+			it('returns the entry it created or updated', () => {
+				const map = new LabelMap(['b', 'c', 'a']);
+
+				const created = map.set({ a: 2 }, 3);
+				expect(created).toEqual({ value: 3, labels: { a: 2 } });
+
+				const updated = map.set({ a: 2 }, 4);
+				expect(updated).toBe(created);
+				expect(updated.value).toEqual(4);
 			});
 		});
 
@@ -131,7 +143,8 @@ describe('utils', () => {
 			it('can update existing values', () => {
 				const map = new LabelMap(['b', 'c', 'a']);
 
-				map.setDelta({ a: 2 }, 3).setDelta({ a: 2 }, 4);
+				map.setDelta({ a: 2 }, 3);
+				map.setDelta({ a: 2 }, 4);
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
@@ -150,6 +163,17 @@ describe('utils', () => {
 					{ value: 3, labels: { a: 2 } },
 					{ value: 3, labels: { a: 3 } },
 				]);
+			});
+
+			it('returns the entry it created or updated', () => {
+				const map = new LabelMap(['b', 'c', 'a']);
+
+				const created = map.setDelta({ a: 2 }, 3);
+				expect(created).toEqual({ value: 3, labels: { a: 2 } });
+
+				const updated = map.setDelta({ a: 2 }, 4);
+				expect(updated).toBe(created);
+				expect(updated.value).toEqual(7);
 			});
 		});
 
@@ -260,7 +284,8 @@ describe('utils', () => {
 			it('resets the collection', () => {
 				const map = new LabelMap(['b', 'c', 'a']);
 
-				map.set({ a: 2 }, 3).set({ a: 3 }, 4);
+				map.set({ a: 2 }, 3);
+				map.set({ a: 3 }, 4);
 				map.clear();
 
 				expect(map.size).toEqual(0);
