@@ -238,6 +238,38 @@ export type Metric<T extends string = NoLabelNameType> =
 	| Summary<T>
 	| Histogram<T>;
 
+declare abstract class AbstractMetric {
+	/**
+	 * The name of the metric.
+	 */
+	readonly name: string;
+
+	/**
+	 * The help text of the metric.
+	 */
+	readonly help: string;
+
+	/**
+	 * List of registers attached to the metric.
+	 */
+	readonly registers: readonly Registry[];
+
+	/**
+	 * List of label names attached to the metric.
+	 */
+	readonly labelNames: readonly string[];
+
+	/**
+	 * The aggregation method used for aggregating this metric in a Node.js cluster.
+	 */
+	readonly aggregator: Aggregator;
+
+	/**
+	 * If provided, the collect function of the metric, which is invoked on each scrape.
+	 */
+	readonly collect?: CollectFunction<this>;
+}
+
 /**
  * Aggregation methods, used for aggregating metrics in a Node.js cluster.
  */
@@ -313,7 +345,9 @@ export interface ObserveDataWithExemplar<T extends string> {
 /**
  * A counter is a cumulative metric that represents a single numerical value that only ever goes up
  */
-export class Counter<T extends string = NoLabelNameType> {
+export class Counter<
+	T extends string = NoLabelNameType,
+> extends AbstractMetric {
 	/**
 	 * @param configuration Configuration when creating a Counter metric. Name and Help is required.
 	 */
@@ -394,7 +428,7 @@ export interface GaugeConfiguration<
 /**
  * A gauge is a metric that represents a single numerical value that can arbitrarily go up and down.
  */
-export class Gauge<T extends string = NoLabelNameType> {
+export class Gauge<T extends string = NoLabelNameType> extends AbstractMetric {
 	/**
 	 * @param configuration Configuration when creating a Gauge metric. Name and Help is mandatory
 	 */
@@ -536,7 +570,9 @@ export interface HistogramConfiguration<
 /**
  * A histogram samples observations (usually things like request durations or response sizes) and counts them in configurable buckets
  */
-export class Histogram<T extends string = NoLabelNameType> {
+export class Histogram<
+	T extends string = NoLabelNameType,
+> extends AbstractMetric {
 	/**
 	 * @param configuration Configuration when creating the Histogram. Name and Help is mandatory
 	 */
@@ -663,7 +699,9 @@ export interface SummaryConfiguration<
 /**
  * A summary samples observations
  */
-export class Summary<T extends string = NoLabelNameType> {
+export class Summary<
+	T extends string = NoLabelNameType,
+> extends AbstractMetric {
 	/**
 	 * @param configuration Configuration when creating Summary metric. Name and Help is mandatory
 	 */
