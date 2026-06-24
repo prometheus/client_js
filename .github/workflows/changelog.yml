@@ -1,16 +1,18 @@
 on: [pull_request]
 
 name: Changelog Reminder
+
+permissions: {} # deny-all default; each job opts in explicitly
+
 jobs:
   remind:
     name: Changelog Reminder
     runs-on: ubuntu-latest
     permissions:
-      issues: write # to create comment
+      issues: write # required: the action posts/removes a PR comment
     steps:
-      - uses: actions/checkout@master
       - name: Changelog Reminder
-        uses: peterjgrainger/action-changelog-reminder@v1.2.0
+        uses: peterjgrainger/action-changelog-reminder@de92130a79d81c60dbb7f1ff64244646d138a645 # v1.3.0
         with:
           changelog_regex: 'CHANGELOG\.md'
           customPrMessage: 'Thanks for opening this pull request! Each pull request require an update in the CHANGELOG. Please update it based on your changes.'
