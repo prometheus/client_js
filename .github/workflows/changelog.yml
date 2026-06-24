@@ -9,7 +9,7 @@ jobs:
     name: Changelog Reminder
     runs-on: ubuntu-latest
     permissions:
-      issues: write # required: the action posts/removes a PR comment
+      pull-requests: write # required: list PR files and post/remove a PR comment
     steps:
       - name: Changelog Reminder
         uses: peterjgrainger/action-changelog-reminder@de92130a79d81c60dbb7f1ff64244646d138a645 # v1.3.0
