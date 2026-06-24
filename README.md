@@ -617,3 +617,7 @@ To avoid native dependencies in this module, GC statistics for bytes reclaimed
 in each GC sweep are kept in a separate module:
 https://github.com/SimenB/node-prometheus-gc-stats. (Note that that metric may
 no longer be accurate now that v8 uses parallel garbage collection.)
+
+
+## Modifications
+This version includes new function resetMetric(name), which allows resetting inidividual metric by name

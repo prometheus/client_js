@@ -40,6 +40,11 @@ export class Registry<
 	resetMetrics(): void;
 
 	/**
+	 * Reset one naed metric
+	 */
+	resetMetric(name: string): void;
+
+	/**
 	 * Register metric to register
 	 * @param metric Metric to add to register
 	 */
