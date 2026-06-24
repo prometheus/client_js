@@ -91,6 +91,22 @@ describe.each([
 		});
 	});
 
+	it('should allow to exclude specific metrics', async () => {
+		expect(await register.getMetricsAsJSON()).toHaveLength(0);
+
+		collectDefaultMetrics();
+		expect(
+			await register.getSingleMetric('nodejs_eventloop_lag_seconds'),
+		).toBeDefined();
+
+		register.clear();
+
+		collectDefaultMetrics({ exclude: ['eventLoopLag'] });
+		expect(
+			await register.getSingleMetric('nodejs_eventloop_lag_seconds'),
+		).toBeUndefined();
+	});
+
 	describe('disabling', () => {
 		it('should not throw error', () => {
 			const fn = function () {
