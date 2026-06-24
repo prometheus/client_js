@@ -22,8 +22,13 @@ export type RegistryContentType =
  * Container for all registered metrics
  */
 export class Registry<
-	BoundRegistryContentType extends RegistryContentType = PrometheusContentType,
+	BoundRegistryContentType extends RegistryContentType = RegistryContentType,
 > {
+	/**
+	 * @param regContentType The content type of the registry
+	 */
+	constructor(regContentType?: RegistryContentType)
+
 	/**
 	 * Get string representation for all metrics
 	 */
