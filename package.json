@@ -1,5 +1,5 @@
 {
-	"name": "@prometheus/client_js",
+	"name": "@prometheus-io/client",
 	"version": "15.1.3",
 	"description": "Client for prometheus",
 	"main": "index.js",
