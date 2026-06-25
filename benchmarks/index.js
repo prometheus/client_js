@@ -13,9 +13,9 @@ const debug = require('debug')('benchmark');
  */
 
 const benchmarks = new Benchmark({
-	'prom-client@latest': 'prom-client@latest',
-	'prom-client@trunk': 'git@github.com:siimon/prom-client',
-	'prom-client@current': { location: process.cwd() },
+	'@prometheus/client_js@latest': '@prometheus/client_js@latest',
+	'@prometheus/client_js@trunk': 'git@github.com:prometheus/client_js',
+	'@prometheus/client_js@current': { location: process.cwd() },
 });
 
 benchmarks.suite('counter', require('./counter'));

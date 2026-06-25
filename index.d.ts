@@ -1,4 +1,4 @@
-// Type definitions for prom-client
+// Type definitions for client_js
 // Definitions by: Simon Nyberg http://twitter.com/siimon_nyberg
 
 export type Charset = 'utf-8';

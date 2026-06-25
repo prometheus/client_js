@@ -57,7 +57,7 @@ describe.each([
 
 			//Emulate a response that has been deleted from requests
 			const unexpected = {
-				type: 'prom-client:getMetricsRes',
+				type: '@prometheus/client_js:getMetricsRes',
 				metrics: ['{}'],
 				requestId: -3,
 			};

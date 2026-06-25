@@ -1,5 +1,5 @@
 {
-	"name": "prom-client",
+	"name": "@prometheus/client_js",
 	"version": "15.1.3",
 	"description": "Client for prometheus",
 	"main": "index.js",
@@ -23,7 +23,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git@github.com:siimon/prom-client.git"
+		"url": "git@github.com:prometheus/client_js.git"
 	},
 	"keywords": [
 		"Prometheus",
@@ -32,7 +32,7 @@
 	],
 	"author": "Simon Nyberg",
 	"license": "Apache-2.0",
-	"homepage": "https://github.com/siimon/prom-client",
+	"homepage": "https://github.com/prometheus/client_js",
 	"devDependencies": {
 		"@eslint/js": "^9.29.0",
 		"debug": "^4.4.1",

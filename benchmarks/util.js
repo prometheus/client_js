@@ -5,7 +5,7 @@ const Path = require('path');
 module.exports = setupUtilSuite;
 
 function setupUtilSuite(suite) {
-	const skip = ['prom-client@latest'];
+	const skip = ['@prometheus/client_js@latest'];
 
 	suite.add(
 		'hashObject',
