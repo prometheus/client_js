@@ -1,7 +1,7 @@
 # Maintainers
 
-* Jason Marshall (@jdmarshall)
+- Jason Marshall (@jdmarshall)
 
 # Emeritus
 
-* Simon Nyberg (@siimon)
+- Simon Nyberg (@siimon)
