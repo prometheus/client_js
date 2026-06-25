@@ -5,7 +5,7 @@ const { Worker, isMainThread, workerData } = require('node:worker_threads');
 const express = require('express');
 const WorkerRegistry = require('../').WorkerRegistry;
 
-const collector = workerData?.['@prometheus/client_js']?.collector === true;
+const collector = workerData?.['@prometheus-io/client']?.collector === true;
 const metricsServer = express();
 const workerRegistry = new WorkerRegistry(
 	WorkerRegistry.PROMETHEUS_CONTENT_TYPE,
@@ -17,7 +17,7 @@ if (isMainThread) {
 	new Worker(Path.join(__filename), {
 		env: { ...process.env, PORT: 3333 },
 		workerData: {
-			'@prometheus/client_js': { collector: true },
+			'@prometheus-io/client': { collector: true },
 		},
 	});
 

@@ -1,4 +1,4 @@
-// Type definitions for client_js
+// Type definitions for @prometheus-io/client
 // Definitions by: Simon Nyberg http://twitter.com/siimon_nyberg
 
 export type Charset = 'utf-8';
