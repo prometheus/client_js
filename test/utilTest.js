@@ -344,35 +344,150 @@ describe('utils', () => {
 				expect(grouper.get('other')).toStrictEqual([3]);
 			});
 		});
+	});
 
-		describe('getOrAdd()', () => {
-			it('returns existing values', () => {
-				const grouper = new Grouper([['name', [2, 3]]]);
-				const callback = jest.fn();
+	describe('LabelGrouper', () => {
+		const { LabelGrouper } = require('../lib/util');
 
-				const actual = grouper.getOrAdd('name', callback);
+		it('can be instantiated', () => {
+			const grouper = new LabelGrouper();
 
-				expect(actual).toStrictEqual([2, 3]);
-				expect(callback).not.toHaveBeenCalled();
+			expect(grouper.size).toEqual(0);
+		});
+
+		describe('keyFrom()', () => {
+			it('handles new labels', () => {
+				const grouper = new LabelGrouper();
+
+				const result = grouper.keyFrom({ a: 1, c: 200, b: 'post' });
+
+				expect(result).toEqual('1|200|post|||');
 			});
 
-			it('adds on missing record', () => {
-				const grouper = new Grouper([['name', [2, 3]]]);
-				const callback = jest.fn(() => 4);
+			it('allows sparse labels ', () => {
+				const grouper = new LabelGrouper();
 
-				const actual = grouper.getOrAdd('blah', callback);
+				grouper.keyFrom({ a: 1, b: 'post', c: 200 });
 
-				expect(actual).toStrictEqual(4);
-				expect(grouper.get('blah')).toStrictEqual(4);
-				expect(callback).toHaveBeenCalled();
+				const result = grouper.keyFrom({ d: 'a|b' });
+
+				expect(result).toEqual('|||a|b||');
+			});
+		});
+
+		describe('label expansion', () => {
+			it('can still fetch earlier values', () => {
+				const grouper = new LabelGrouper();
+
+				const labels1 = { a: 1, b: 'post', c: 200, d: true };
+				const labels2 = { d: false, e: true, f: 500, g: 1 };
+
+				grouper.add({ labels: labels1, value: 4 });
+				grouper.add({ labels: labels2, value: 5 });
+
+				const result = grouper.get({ ...labels1 });
+
+				expect(grouper.size).toEqual(2);
+				expect(result).toStrictEqual([{ labels: { ...labels1 }, value: 4 }]);
 			});
 
-			it('defaults to inserting an empty array', () => {
-				const grouper = new Grouper([['name', [2, 3]]]);
-				const actual = grouper.getOrAdd('blah');
+			it('can concatenate to existing entries', () => {
+				const grouper = new LabelGrouper();
 
-				expect(actual).toStrictEqual([]);
-				expect(grouper.get('blah')).toStrictEqual([]);
+				// And supports chaining
+				const labels = { a: 2 };
+				grouper
+					.add({ labels: { ...labels }, value: 3 })
+					.add({ labels: { ...labels }, value: 4 });
+
+				expect(grouper.size).toEqual(1);
+				expect(Array.from(grouper.values())).toStrictEqual([
+					[
+						{ labels, value: 3 },
+						{ labels, value: 4 },
+					],
+				]);
+			});
+
+			it('creates separate records for each label combination', () => {
+				const grouper = new LabelGrouper();
+
+				grouper
+					.add({ labels: { a: 2 }, value: 22 })
+					.add({ labels: { a: 3 }, value: 3 });
+
+				expect(grouper.size).toEqual(2);
+				expect(Array.from(grouper.values())).toStrictEqual([
+					[{ value: 22, labels: { a: 2 } }],
+					[{ value: 3, labels: { a: 3 } }],
+				]);
+			});
+		});
+
+		describe('get()', () => {
+			it('does not error on missing entry', () => {
+				const grouper = new LabelGrouper();
+
+				expect(grouper.get({ foo: 'bar' })).toBeUndefined();
+			});
+
+			it('returns the entry.value', () => {
+				const grouper = new LabelGrouper();
+
+				grouper.add({ labels: { b: 22 }, value: 10 });
+
+				expect(grouper.get({ b: 22 })).toStrictEqual([
+					{ labels: { b: 22 }, value: 10 },
+				]);
+			});
+		});
+
+		describe('forEach()', () => {
+			it('returns values', () => {
+				const grouper = new LabelGrouper();
+
+				grouper
+					.add({ labels: { a: 2 }, value: 3 })
+					.add({ labels: { a: 3 }, value: 4 });
+
+				let count = 0;
+
+				grouper.forEach((entry, key) => {
+					expect(key).toBeDefined();
+					expect(entry).toHaveLength(1);
+					expect(entry[0]).toHaveProperty('labels');
+					expect(entry[0]).toHaveProperty('value');
+					count++;
+				});
+
+				expect(count).toBe(2);
+			});
+		});
+
+		describe('clear()', () => {
+			it('resets the collections', () => {
+				const grouper = new LabelGrouper();
+
+				grouper
+					.add({ labels: { a: 2 }, value: 3 })
+					.add({ labels: { a: 3 }, value: 4 });
+
+				grouper.clear();
+
+				expect(Array.from(grouper.values())).toStrictEqual([]);
+			});
+
+			it('can still add new records after clear()ing', () => {
+				const grouper = new LabelGrouper();
+
+				grouper.add({ labels: { a: 3 }, value: 3 });
+				grouper.clear();
+				grouper.add({ labels: { a: 3 }, value: 4 });
+
+				expect(grouper.size).toEqual(1);
+				expect(Array.from(grouper.values())).toStrictEqual([
+					[{ labels: { a: 3 }, value: 4 }],
+				]);
 			});
 		});
 	});

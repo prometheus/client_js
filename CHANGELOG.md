@@ -31,6 +31,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - ci: switch out deprecated benchmark-regression library for replacement
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: update faceoff to 1.1
+- perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 
 ### Added
 
