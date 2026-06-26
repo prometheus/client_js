@@ -5,7 +5,7 @@ const Path = require('path');
 module.exports = setupUtilSuite;
 
 function setupUtilSuite(suite) {
-	const skip = ['prom-client@latest'];
+	const skip = ['released'];
 
 	suite.add(
 		'hashObject',
@@ -57,10 +57,6 @@ function setupUtilSuite(suite) {
 	suite.add(
 		'LabelGrouper.keyFrom()',
 		(client, labelGrouper) => {
-			if (labelGrouper === undefined) {
-				return;
-			}
-
 			labelGrouper.keyFrom({
 				foo: 'longish',
 				user_agent: 'Chrome',
@@ -77,7 +73,7 @@ function setupUtilSuite(suite) {
 
 				return new Util.LabelGrouper();
 			},
-			skip: ['prom-client@latest', 'prom-client@trunk'],
+			skip: ['released', 'trunk'],
 		},
 	);
 }
