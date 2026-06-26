@@ -307,6 +307,45 @@ describe.each([
 						expect(value.labels.method).toBe('GET');
 					});
 				});
+
+				it.only('can init labels to 0', async () => {
+					instance.initLabels('GET', '/test');
+
+					const { values } = await instance.get();
+					expect(values).toHaveLength(3);
+					expect(values[0].labels.method).toEqual('GET');
+					expect(values[0].labels.endpoint).toEqual('/test');
+					expect(values[0].labels.quantile).toEqual(0.9);
+					expect(values[0].value).toEqual(0);
+
+					expect(values[1].metricName).toEqual('summary_test_sum');
+					expect(values[1].labels.method).toEqual('GET');
+					expect(values[1].labels.endpoint).toEqual('/test');
+					expect(values[1].value).toEqual(0);
+
+					expect(values[2].metricName).toEqual('summary_test_count');
+					expect(values[2].labels.method).toEqual('GET');
+					expect(values[2].labels.endpoint).toEqual('/test');
+					expect(values[2].value).toEqual(0);
+				});
+
+				it.only('can init labels passed as an object', async () => {
+					instance.initLabels({ method: 'GET' });
+
+					const { values } = await instance.get();
+					expect(values).toHaveLength(3);
+					expect(values[0].labels.method).toEqual('GET');
+					expect(values[0].labels.quantile).toEqual(0.9);
+					expect(values[0].value).toEqual(0);
+
+					expect(values[1].metricName).toEqual('summary_test_sum');
+					expect(values[1].labels.method).toEqual('GET');
+					expect(values[1].value).toEqual(0);
+
+					expect(values[2].metricName).toEqual('summary_test_count');
+					expect(values[2].labels.method).toEqual('GET');
+					expect(values[2].value).toEqual(0);
+				});
 			});
 
 			describe('remove', () => {

@@ -714,6 +714,20 @@ export class Summary<T extends string = NoLabelNameType> {
 	labels(labels: LabelValues<T>): Summary.Internal<T>;
 
 	/**
+	 * Initializes to 0 for given label values
+	 * @param values Label values
+	 * @return Configured summary with given labels
+	 */
+	initLabels(...values: string[]): Summary.Internal<T>;
+
+	/**
+	 * Initializes to 0 for given label values
+	 * @param labels Object with label keys and values
+	 * @return Configured counter with given labels
+	 */
+	initLabels(labels: LabelValues<T>): Summary.Internal<T>;
+
+	/**
 	 * Remove metrics for the given label values
 	 * @param values Label values
 	 */
