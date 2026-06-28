@@ -25,6 +25,7 @@ benchmarks.suite('util', require('./util'));
 benchmarks.suite('summary', require('./summary'));
 benchmarks.suite('registry', require('./registry'));
 benchmarks.suite('cluster', require('./cluster'));
+benchmarks.suite('memoryUsage', require('./memoryUsage'));
 
 benchmarks
 	.run()
