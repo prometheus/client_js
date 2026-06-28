@@ -35,6 +35,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Default metric `nodejs_heap_size_limit_bytes` (V8 heap size limit from `getHeapStatistics()`).
 - Expanded benchmarking code
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
 
