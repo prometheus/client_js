@@ -26,6 +26,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - perf: Improve performance of registry defaultLabels during metric processing
 - perf: New, more space-efficient storage engine, 20-45% faster stats recording
 - perf: Further improvement to key generation cost
+- perf: Use faster `process.memoryUsage.rss()` API for resident memory collection (30-40% more ops/sec)
 - fix: Browser compatibility for Gauge.startTimer()
 - ci: Run benchmarks for pull requests
 - ci: switch out deprecated benchmark-regression library for replacement
