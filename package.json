@@ -9,7 +9,7 @@
 		"index.d.ts"
 	],
 	"engines": {
-		"node": "^20 || ^22 || >=24"
+		"node": "^22 || >=24"
 	},
 	"scripts": {
 		"benchmarks": "node --max-heap-size=5000 --allow-natives-syntax ./benchmarks/index.js",
