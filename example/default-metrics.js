@@ -113,6 +113,10 @@ nodejs_heap_size_total_bytes 8425472
 # TYPE nodejs_heap_size_used_bytes gauge
 nodejs_heap_size_used_bytes 6379336
 
+# HELP nodejs_heap_size_limit_bytes V8 maximum JavaScript heap size limit in bytes.
+# TYPE nodejs_heap_size_limit_bytes gauge
+nodejs_heap_size_limit_bytes 2147483648
+
 # HELP nodejs_external_memory_bytes Node.js external memory size in bytes.
 # TYPE nodejs_external_memory_bytes gauge
 nodejs_external_memory_bytes 746074
