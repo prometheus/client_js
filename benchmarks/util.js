@@ -77,7 +77,7 @@ function setupUtilSuite(suite) {
 
 				return new Util.LabelGrouper();
 			},
-			skip: ['prom-client@latest', 'prom-client@trunk'],
+			skip: ['@prometheus/client@latest', '@prometheus/client@trunk'],
 		},
 	);
 }
