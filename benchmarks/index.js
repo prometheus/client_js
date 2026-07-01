@@ -13,9 +13,9 @@ const debug = require('debug')('benchmark');
  */
 
 const benchmarks = new Benchmark({
-	'@prometheus-io/client@latest': '@prometheus-io/client@latest',
-	'@prometheus-io/client@trunk': 'git@github.com:prometheus/client_js',
-	'@prometheus-io/client@current': { location: process.cwd() },
+	'@prometheus/client@latest': '@prometheus/client@latest',
+	'@prometheus/client@trunk': 'git@github.com:prometheus/client_js',
+	'@prometheus/client@current': { location: process.cwd() },
 });
 
 benchmarks.suite('counter', require('./counter'));
