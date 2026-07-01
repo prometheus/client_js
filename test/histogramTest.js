@@ -92,6 +92,20 @@ describe.each([
 				expect(values[1].labels.le).toEqual(5);
 				expect(values[2].labels.le).toEqual('+Inf');
 			});
+
+			it('should not have repeated LE buckets', async () => {
+				const histogram = new Histogram({
+					name: 'test_histogram_2',
+					help: 'test',
+					buckets: [1, 1, 5],
+				});
+				histogram.observe(6);
+				const values = (await histogram.get()).values;
+				expect(values[0].labels.le).toEqual(1);
+				expect(values[1].labels.le).toEqual(5);
+				expect(values[2].labels.le).toEqual('+Inf');
+			});
+
 			it('should group counts on each label set', async () => {
 				const histogram = new Histogram({
 					name: 'test_histogram_2',
