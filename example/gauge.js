@@ -13,6 +13,8 @@ async function main() {
 		labelNames: ['code'],
 	});
 
+	const done = g.startTimer({});
+
 	g.set({ code: 200 }, 5);
 	console.log(await register.metrics());
 	/*
@@ -49,6 +51,8 @@ async function main() {
 	*/
 
 	g.set(22);
+	done();
+
 	console.log(await register.metrics());
 	/*
 	# HELP test_gauge Example of a gauge

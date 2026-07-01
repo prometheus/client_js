@@ -7,13 +7,13 @@ describe('validation', () => {
 		it('should not throw on known label', () => {
 			expect(() => {
 				validateLabel(['exists'], { exists: null });
-			}).not.toThrowError();
+			}).not.toThrow();
 		});
 
 		it('should throw on unknown label', () => {
 			expect(() => {
 				validateLabel(['exists'], { somethingElse: null });
-			}).toThrowError(
+			}).toThrow(
 				'Added label "somethingElse" is not included in initial labelset: [ \'exists\' ]',
 			);
 		});

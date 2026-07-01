@@ -9,11 +9,41 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Breaking
 
+- Drop support for Node.js versions 16, 18, 21 and 23
+- Metric internal storage ('hashMap') changed to a separate object, LabelMap. If you have
+  subclassed the built-in metric types you may need to adjust your code.
+
 ### Changed
+
+- Improve types for no labels
+- perf: Faster stats gathering with lower memory overhead
+- Simplified number format logic
+- Simplified Histogram.observe() call stack
+- Fix memory leak in cluster.js by deleting all expired requests
+- perf: Sped up Map accesses
+- perf: Remove truthy conditionals in hot code paths
+- Show the invalid name in the validation errors
+- perf: Improve performance of registry defaultLabels during metric processing
+- perf: New, more space-efficient storage engine, 20-45% faster stats recording
+- perf: Further improvement to key generation cost
+- perf: Use faster `process.memoryUsage.rss()` API for resident memory collection (30-40% more ops/sec)
+- fix: Browser compatibility for Gauge.startTimer()
+- ci: Run benchmarks for pull requests
+- ci: switch out deprecated benchmark-regression library for replacement
+- AggregatorRegistry renamed to ClusterRegistry, old name deprecated
+- chore: update faceoff to 1.1
+- perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 
 ### Added
 
-[unreleased]: https://github.com/siimon/prom-client/compare/v15.1.2...HEAD
+- Expanded benchmarking code
+- new WorkerRegistry to provide equivalent support to AggregatorRegistry
+
+## [15.1.3] - 2024-06-27
+
+### Changed
+
+- Improve error message when number of registered labels mismatch with the number of labels provided
 
 ## [15.1.2] - 2024-04-16
 
@@ -118,7 +148,6 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - The `processResources` metric was added, which keeps a track of all sorts of
   active resources. It consists of the following gauges:
-
   - `nodejs_active_resources` - Number of active resources that are currently
     keeping the event loop alive, grouped by async resource type.
   - `nodejs_active_resources_total` - Total number of active resources.

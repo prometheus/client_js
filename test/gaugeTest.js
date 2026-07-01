@@ -1,5 +1,6 @@
 'use strict';
 
+const { Metric } = require('../lib/metric');
 const Registry = require('../index').Registry;
 
 describe.each([
@@ -17,6 +18,44 @@ describe.each([
 	describe('global registry', () => {
 		afterEach(() => {
 			globalRegistry.clear();
+		});
+
+		describe('Metric instantiation', () => {
+			const defaultParams = { name: 'gauge_test', help: 'help' };
+
+			describe('happy path', () => {
+				it('should create a instance', async () => {
+					const instance = new Gauge(defaultParams);
+					const instanceValues = await instance.get();
+					expect(instance).toBeInstanceOf(Metric);
+					expect(instance).toBeInstanceOf(Gauge);
+					expect(instance.labelNames).toStrictEqual([]);
+					expect(instanceValues.name).toStrictEqual(defaultParams.name);
+					expect(instanceValues.help).toStrictEqual(defaultParams.help);
+				});
+			});
+
+			describe('un-happy path', () => {
+				const noValidName = 'no valid name';
+				it('should thrown an error due invalid metric name', () => {
+					expect(
+						() => new Gauge({ ...defaultParams, name: noValidName }),
+					).toThrow(new Error(`Invalid metric name: ${noValidName}`));
+				});
+
+				it('should thrown an error due some invalid label name', () => {
+					const noValidLabelNames = [noValidName, defaultParams.name];
+					expect(
+						() =>
+							new Gauge({
+								...defaultParams,
+								labelNames: noValidLabelNames,
+							}),
+					).toThrow(
+						new Error(`At least one label name is invalid: ${noValidName}`),
+					);
+				});
+			});
 		});
 
 		describe('with parameters as object', () => {
@@ -273,6 +312,7 @@ describe.each([
 	});
 
 	async function expectValue(val) {
-		expect((await instance.get()).values[0].value).toEqual(val);
+		const result = await instance.get();
+		expect(result.values[0].value).toEqual(val);
 	}
 });

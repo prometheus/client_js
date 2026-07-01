@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Exemplars with OpenMetrics registry should make histogram with exemplars on multiple buckets 1`] = `
 "# HELP counter_exemplar_test help

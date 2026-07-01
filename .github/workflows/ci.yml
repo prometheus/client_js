@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches:
-      - master
       - main
       - next
   pull_request:
@@ -16,19 +15,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16.x, 18.x, 20.x, 21.x]
+        node-version: [20.x, 22.x, 24.x]
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: ${{ matrix.node-version }}
       - name: Restore dependencies cache
-        uses: actions/cache@v3
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         id: cache
         with:
           path: node_modules
@@ -39,13 +38,61 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm i
       - name: Test
-        run: npm run test
+        run: npm run test-unit
+  check:
+    name: Run Checks
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Use Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: lts/*
+      - name: Restore dependencies cache
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        id: cache
+        with:
+          path: node_modules
+          key: ${{ matrix.os }}-${{ matrix.node-version }}-node_modules-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.node-version }}-node_modules-
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm i
+      - name: Test
+        run: npm run lint && npm run check-prettier && npm run compile-typescript
+  benchmarks:
+    name: Run Benchmarks
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Use Node.js LTS
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: lts/*
+      - name: Restore dependencies cache
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        id: cache
+        with:
+          path: node_modules
+          key: ${{ matrix.os }}-${{ matrix.node-version }}-node_modules-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.node-version }}-node_modules-
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm i
+      - name: Benchmark
+        run: npm run benchmarks
   bun:
     name: Test on Bun
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: latest
       - name: Install Dependencies

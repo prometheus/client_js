@@ -97,7 +97,7 @@ describe.each([
 				register.clear();
 			};
 
-			expect(fn).not.toThrowError(Error);
+			expect(fn).not.toThrow(Error);
 		});
 	});
 

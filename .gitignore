@@ -1,7 +1,10 @@
 .DS_Store
-node_modules
 .idea/
-*.log
-coverage/
+
+node_modules
+coverage
+output
+
 package-lock.json
 *.heapsnapshot
+*.log

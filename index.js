@@ -34,4 +34,8 @@ exports.exponentialBuckets =
 exports.collectDefaultMetrics = require('./lib/defaultMetrics');
 
 exports.aggregators = require('./lib/metricAggregators').aggregators;
-exports.AggregatorRegistry = require('./lib/cluster');
+exports.ClusterRegistry = require('./lib/cluster');
+exports.WorkerRegistry = require('./lib/worker');
+/** @deprecated */
+exports.AggregatorRegistry = exports.ClusterRegistry;
+exports[Symbol('util')] = require('./lib/util');

@@ -17,7 +17,7 @@ describe('Exemplars', () => {
 				labelNames: ['method', 'code'],
 				enableExemplars: true,
 			});
-		}).toThrowError('Exemplars are supported only on OpenMetrics registries');
+		}).toThrow('Exemplars are supported only on OpenMetrics registries');
 	});
 	describe.each([['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE]])(
 		'with %s registry',
@@ -119,7 +119,7 @@ describe('Exemplars', () => {
 							spanId: 'j'.repeat(100),
 						},
 					});
-				}).toThrowError('Label set size must be smaller than 128 UTF-8 chars');
+				}).toThrow('Label set size must be smaller than 128 UTF-8 chars');
 			});
 
 			it('should time request, with exemplar', async () => {

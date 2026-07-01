@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Register with OpenMetrics type should not output all initialized metrics at value 0 if labels 1`] = `
 "# HELP counter help

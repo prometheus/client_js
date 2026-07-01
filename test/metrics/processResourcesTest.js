@@ -13,6 +13,7 @@ describe('processRequests', () => {
 	});
 
 	it('should add metric to the registry', async () => {
+		// eslint-disable-next-line n/no-unsupported-features/node-builtins
 		if (typeof process.getActiveResourcesInfo !== 'function') {
 			return;
 		}

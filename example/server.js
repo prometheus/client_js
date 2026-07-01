@@ -2,6 +2,7 @@
 
 const express = require('express');
 const cluster = require('cluster');
+const { isMainThread, threadId } = require('node:worker_threads');
 const server = express();
 const register = require('../').register;
 
@@ -73,6 +74,11 @@ if (cluster.isWorker) {
 	setInterval(() => {
 		c.inc({ code: `worker_${cluster.worker.id}` });
 	}, 2000);
+} else if (!isMainThread) {
+	// Expose some worker-specific metric as an example
+	setInterval(() => {
+		c.inc({ code: `worker_${threadId}` });
+	}, 2000);
 }
 
 const t = [];
@@ -108,7 +114,8 @@ server.get('/metrics/counter', async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-console.log(
-	`Server listening to ${port}, metrics exposed on /metrics endpoint`,
-);
-server.listen(port);
+server.listen(port, () => {
+	console.log(
+		`Server listening to ${port}, metrics exposed on /metrics endpoint`,
+	);
+});

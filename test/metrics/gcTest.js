@@ -31,7 +31,6 @@ describe.each([
 		// Check if perf_hooks module is available
 		let perf_hooks;
 		try {
-			// eslint-disable-next-line
 			perf_hooks = require('perf_hooks');
 		} catch {
 			// node version is too old
