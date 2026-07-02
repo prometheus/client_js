@@ -37,27 +37,29 @@ describe.each([
 				instance.pushAdd({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('POST');
+				expect(requestUrl.pathname).toEqual('/path/metrics/job/testJob');
 			});
 
 			it('should use groupings', () => {
 				instance.pushAdd({ jobName: 'testJob', groupings: { key: 'value' } });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob/key/value');
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('POST');
+				expect(requestUrl.pathname).toEqual(
+					'/path/metrics/job/testJob/key/value',
+				);
 			});
 
 			it('should escape groupings', () => {
 				instance.pushAdd({ jobName: 'testJob', groupings: { key: 'va&lue' } });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.path).toEqual(
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('POST');
+				expect(requestUrl.pathname).toEqual(
 					'/path/metrics/job/testJob/key/va%26lue',
 				);
 			});
@@ -68,18 +70,18 @@ describe.each([
 				instance.push({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('PUT');
+				expect(requestUrl.pathname).toEqual('/path/metrics/job/testJob');
 			});
 
 			it('should uri encode url', () => {
 				instance.push({ jobName: 'test&Job' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.path).toEqual('/path/metrics/job/test%26Job');
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('PUT');
+				expect(requestUrl.pathname).toEqual('/path/metrics/job/test%26Job');
 			});
 		});
 
@@ -88,9 +90,9 @@ describe.each([
 				instance.delete({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('DELETE');
-				expect(invocation.path).toEqual('/path/metrics/job/testJob');
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('DELETE');
+				expect(requestUrl.pathname).toEqual('/path/metrics/job/testJob');
 			});
 		});
 
@@ -111,27 +113,30 @@ describe.each([
 				instance.pushAdd({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('POST');
-				expect(invocation.auth).toEqual(auth);
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('POST');
+				expect(requestUrl.username).toEqual(USERNAME);
+				expect(requestUrl.password).toEqual(PASSWORD);
 			});
 
 			it('push should send PUT request with basic auth data', () => {
 				instance.push({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('PUT');
-				expect(invocation.auth).toEqual(auth);
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('PUT');
+				expect(requestUrl.username).toEqual(USERNAME);
+				expect(requestUrl.password).toEqual(PASSWORD);
 			});
 
 			it('delete should send DELETE request with basic auth data', () => {
 				instance.delete({ jobName: 'testJob' });
 
 				expect(mockHttp).toHaveBeenCalledTimes(1);
-				const invocation = mockHttp.mock.calls[0][0];
-				expect(invocation.method).toEqual('DELETE');
-				expect(invocation.auth).toEqual(auth);
+				const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+				expect(requestOptions.method).toEqual('DELETE');
+				expect(requestUrl.username).toEqual(USERNAME);
+				expect(requestUrl.password).toEqual(PASSWORD);
 			});
 		});
 
@@ -149,8 +154,22 @@ describe.each([
 			instance.push({ jobName: 'testJob' });
 
 			expect(mockHttp).toHaveBeenCalledTimes(1);
-			const invocation = mockHttp.mock.calls[0][0];
-			expect(invocation.headers).toEqual({ 'unit-test': '1' });
+			const [, requestOptions] = mockHttp.mock.calls[0];
+			expect(requestOptions.headers).toEqual({ 'unit-test': '1' });
+		});
+
+		it('pins the http.request(url, options) call shape (no legacy options translation)', () => {
+			instance.push({ jobName: 'testJob' });
+
+			expect(mockHttp).toHaveBeenCalledTimes(1);
+			const [requestUrl, requestOptions] = mockHttp.mock.calls[0];
+
+			expect(requestUrl).toBeInstanceOf(URL);
+
+			expect({
+				url: requestUrl.toString(),
+				options: requestOptions,
+			}).toMatchSnapshot();
 		});
 	};
 	describe('global registry', () => {
