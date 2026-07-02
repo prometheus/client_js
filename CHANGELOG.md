@@ -36,6 +36,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Node 26 added to the test matrix
 - Expanded benchmarking code
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
 - Added examples for Summary metric
