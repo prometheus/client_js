@@ -39,6 +39,7 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Added
 
+- Node 26 added to the test matrix
 - Expanded benchmarking code
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
 - Added examples for Summary metric
