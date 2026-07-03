@@ -27,7 +27,7 @@ export class Registry<
 	/**
 	 * @param regContentType The content type of the registry
 	 */
-	constructor(regContentType?: RegistryContentType)
+	constructor(regContentType?: RegistryContentType);
 
 	/**
 	 * Get string representation for all metrics
