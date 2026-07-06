@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+This release marks our first release under the Prometheus umbrella.
+
 ### Breaking
 
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
