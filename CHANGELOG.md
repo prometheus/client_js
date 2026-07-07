@@ -15,6 +15,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
 - perf: Faster stats gathering with lower memory overhead
 - Simplified number format logic
