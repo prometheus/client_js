@@ -56,6 +56,12 @@ export class Registry<
 	getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
 
 	/**
+	 * Get string representation for a metric
+	 * @param metric Metric to convert to a string
+	 */
+	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
+
+	/**
 	 * Get all metrics as objects
 	 */
 	getMetricsAsArray(): MetricObject[];
