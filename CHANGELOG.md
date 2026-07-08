@@ -36,6 +36,7 @@ This release marks our first release under the Prometheus umbrella.
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: update faceoff to 1.1
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
+- ci: Run additional benchmarks against trunk
 
 ### Added
 
