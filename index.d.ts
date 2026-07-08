@@ -773,7 +773,12 @@ export class Pushgateway<T extends RegistryContentType> {
 	 * @param options Options
 	 * @param registry Registry
 	 */
-	constructor(url: string, options?: any, registry?: Registry<T>);
+	constructor(url: string, registry: Registry<T>);
+	constructor(
+		url: string,
+		options?: Pushgateway.Options | null,
+		registry?: Registry<T>,
+	);
 
 	/**
 	 * Add metric and overwrite old ones
@@ -801,6 +806,11 @@ export class Pushgateway<T extends RegistryContentType> {
 }
 
 export namespace Pushgateway {
+	interface Options {
+		requireJobName?: boolean;
+		[key: string]: unknown;
+	}
+
 	interface Parameters {
 		/**
 		 * Jobname that is pushing the metric
