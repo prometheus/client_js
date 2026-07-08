@@ -17,6 +17,7 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Changed
 
+- Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
 - perf: Faster stats gathering with lower memory overhead
 - Simplified number format logic
