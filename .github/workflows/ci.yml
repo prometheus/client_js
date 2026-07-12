@@ -99,3 +99,21 @@ jobs:
         run: bun install
       - name: Test
         run: bun test-unit
+  check-license:
+    name: Check license headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Check license headers
+        run: |
+          fail=false
+          git ls-files '*.ts' '*.js' | while read file ; do
+            if ! grep -Eq "(Copyright|generated|GENERATED)" <(awk 'NR<=3' "${file}") ; then
+              echo "license header checking failed: ${file}"
+              fail=true
+            fi
+          done
+          if [[ "${fail}" == "true" ]] ; then
+            echo "Some files failed license check"
+            exit 1
+          fi
