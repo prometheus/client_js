@@ -17,6 +17,7 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Changed
 
+- Allow `Pushgateway` to accept a custom registry as the second constructor argument
 - Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
 - perf: Faster stats gathering with lower memory overhead
