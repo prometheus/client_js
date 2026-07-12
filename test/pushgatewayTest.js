@@ -326,6 +326,22 @@ describe.each([
 			cnt.inc(100);
 		});
 
+		it('should use a registry passed as the second constructor argument', () => {
+			const body =
+				regType === Registry.OPENMETRICS_CONTENT_TYPE
+					? '# HELP test test\n# TYPE test counter\ntest_total 100\n# EOF\n'
+					: '# HELP test test\n# TYPE test counter\ntest 100\n';
+			const mockHttp = nock('http://192.168.99.100:9091')
+				.put('/metrics/job/testJob', body)
+				.reply(200);
+
+			instance = new Pushgateway('http://192.168.99.100:9091', registry);
+
+			return instance.push({ jobName: 'testJob' }).then(() => {
+				expect(mockHttp.isDone());
+			});
+		});
+
 		tests();
 	});
 });
