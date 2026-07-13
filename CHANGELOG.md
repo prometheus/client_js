@@ -12,6 +12,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
 - Metric internal storage ('hashMap') changed to a separate object, LabelMap. If you have
   subclassed the built-in metric types you may need to adjust your code.
+- Counter Exemplars now report the value rather than the delta
 
 ### Changed
 

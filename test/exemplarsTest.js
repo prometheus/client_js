@@ -33,8 +33,11 @@ describe('Exemplars', () => {
 					labelNames: ['method', 'code'],
 					enableExemplars: true,
 				});
+
 				counterInstance.inc({
-					value: 2,
+					labels: { method: 'get', code: '200' },
+				}); // 1
+				counterInstance.inc({
 					labels: { method: 'get', code: '200' },
 					exemplarLabels: { traceId: 'trace_id_test', spanId: 'span_id_test' },
 				});
