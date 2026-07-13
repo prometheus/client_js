@@ -14,6 +14,8 @@ This release marks our first release under the Prometheus umbrella.
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
 - Metric internal storage ('hashMap') changed to a separate object, LabelMap. If you have
   subclassed the built-in metric types you may need to adjust your code.
+- Counter exemplar values now record the counter's total value instead of the increment
+  amount, matching the behavior of other Prometheus clients (Fixes [#621](https://github.com/prometheus/client_js/issues/621))
 
 ### Changed
 

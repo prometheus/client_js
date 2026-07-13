@@ -60,6 +60,31 @@ describe('Exemplars', () => {
 				);
 			});
 
+			it('should use the counter total as the exemplar value, not the increment', async () => {
+				const localRegistry = new Registry();
+				localRegistry.setContentType(regType);
+				const counterInstance = new Counter({
+					name: 'counter_exemplar_total_test',
+					help: 'help',
+					labelNames: ['method', 'code'],
+					enableExemplars: true,
+					registers: [localRegistry],
+				});
+				counterInstance.inc({
+					labels: { method: 'get', code: '200' },
+					exemplarLabels: { traceId: 'trace_id_1' },
+				});
+				counterInstance.inc({
+					value: 3,
+					labels: { method: 'get', code: '200' },
+					exemplarLabels: { traceId: 'trace_id_2' },
+				});
+				const vals = await counterInstance.get();
+				expect(vals.values[0].value).toEqual(4);
+				expect(vals.values[0].exemplar.value).toEqual(4);
+				expect(vals.values[0].exemplar.labelSet.traceId).toEqual('trace_id_2');
+			});
+
 			it('should make histogram with exemplars on multiple buckets', async () => {
 				const histogramInstance = new Histogram({
 					name: 'histogram_exemplar_test',
