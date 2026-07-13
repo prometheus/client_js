@@ -38,6 +38,7 @@ This release marks our first release under the Prometheus umbrella.
 - chore: update faceoff to 1.1
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 - chore: Add copyright license headers and test
+- Make cluster and worker-thread metric aggregation order deterministic
 
 ### Added
 

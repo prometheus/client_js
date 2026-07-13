@@ -18,6 +18,18 @@ const cluster = require('cluster');
 const process = require('process');
 const Registry = require('../lib/cluster');
 
+const GET_METRICS_RES = '@prometheus/client:getMetricsRes';
+
+function metric(value) {
+	return {
+		help: 'test metric',
+		name: 'test_metric',
+		type: 'gauge',
+		values: [{ labels: {}, value }],
+		aggregator: 'sum',
+	};
+}
+
 describe.each([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
@@ -60,6 +72,43 @@ describe.each([
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
 			expect(metrics).toEqual('');
+		});
+
+		it('aggregates worker responses in worker id order', async () => {
+			const originalWorkers = cluster.workers;
+			const workers = Object.fromEntries(
+				[1, 2, 3].map(id => [
+					id,
+					{
+						id,
+						isConnected: () => true,
+						send: jest.fn(),
+					},
+				]),
+			);
+			cluster.workers = workers;
+
+			try {
+				const registry = new Registry(regType);
+				const result = registry.clusterMetrics();
+				const requestId = workers[1].send.mock.calls[0][0].requestId;
+
+				for (const [id, value] of [
+					[3, 0.3437699],
+					[1, 0.5848208],
+					[2, 0.5479198],
+				]) {
+					cluster.emit('message', workers[id], {
+						type: GET_METRICS_RES,
+						requestId,
+						metrics: [[metric(value)]],
+					});
+				}
+
+				await expect(result).resolves.toContain('test_metric 1.4765105');
+			} finally {
+				cluster.workers = originalWorkers;
+			}
 		});
 	});
 
