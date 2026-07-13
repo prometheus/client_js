@@ -17,6 +17,7 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Changed
 
+- Avoid sending cluster worker responses after the IPC channel disconnects (Fixes [#563](https://github.com/prometheus/client_js/issues/563))
 - Allow `Pushgateway` to accept a custom registry as the second constructor argument
 - Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
