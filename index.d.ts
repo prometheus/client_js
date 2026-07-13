@@ -323,6 +323,7 @@ export interface CounterConfiguration<
 	T extends string,
 > extends MetricConfiguration<T> {
 	collect?: CollectFunction<Counter<T>>;
+	useCounterValueAsExemplar?: boolean;
 }
 
 export interface IncreaseDataWithExemplar<T extends string> {

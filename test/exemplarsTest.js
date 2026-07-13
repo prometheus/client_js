@@ -60,6 +60,34 @@ describe('Exemplars', () => {
 				);
 			});
 
+			it('should optionally use the counter value for exemplars', async () => {
+				const counterWithTotal = new Counter({
+					name: 'counter_total_exemplar_test',
+					help: 'help',
+					enableExemplars: true,
+					useCounterValueAsExemplar: true,
+					registers: [],
+				});
+				const counterWithIncrement = new Counter({
+					name: 'counter_increment_exemplar_test',
+					help: 'help',
+					enableExemplars: true,
+					registers: [],
+				});
+
+				counterWithTotal.inc({ exemplarLabels: { traceId: 'x' } });
+				counterWithTotal.inc({ exemplarLabels: { traceId: 'x' } });
+				counterWithIncrement.inc({ exemplarLabels: { traceId: 'x' } });
+				counterWithIncrement.inc({ exemplarLabels: { traceId: 'x' } });
+
+				const totalValues = await counterWithTotal.get();
+				const incrementValues = await counterWithIncrement.get();
+				expect(totalValues.values[0].value).toEqual(2);
+				expect(totalValues.values[0].exemplar.value).toEqual(2);
+				expect(incrementValues.values[0].value).toEqual(2);
+				expect(incrementValues.values[0].exemplar.value).toEqual(1);
+			});
+
 			it('should make histogram with exemplars on multiple buckets', async () => {
 				const histogramInstance = new Histogram({
 					name: 'histogram_exemplar_test',
