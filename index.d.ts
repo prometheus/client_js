@@ -304,7 +304,7 @@ type MetricValueWithName<T extends string> = MetricValue<T> & {
 
 type LabelValues<T extends string> = T extends NoLabelNameType
 	? Partial<Record<string, never>>
-	: Partial<Record<T, string | number>>;
+	: Partial<Record<T, string | number | string[]>>;
 
 interface MetricConfiguration<T extends string> {
 	name: string;

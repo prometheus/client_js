@@ -18,8 +18,10 @@ const registry = new Registry();
 const counter = new Counter({
 	name: 'typescript_test_counter',
 	help: 'TypeScript test counter',
+	labelNames: ['handler'],
 	registers: [registry],
 });
+counter.inc({ handler: ['/a', '/b'] });
 
 const metricsText: Promise<string> = registry.getMetricsAsString(counter);
 const gatewayWithRegistry = new Pushgateway('http://127.0.0.1:9091', registry);
