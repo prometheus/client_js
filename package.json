@@ -35,7 +35,6 @@
 	"homepage": "https://github.com/prometheus/client_js",
 	"devDependencies": {
 		"@eslint/js": "^9.29.0",
-		"debug": "^4.4.1",
 		"eslint": "^9.29.0",
 		"eslint-config-prettier": "^10.1.5",
 		"eslint-plugin-jsdoc": "^61.4.1",

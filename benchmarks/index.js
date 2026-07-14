@@ -14,8 +14,9 @@
 
 'use strict';
 
+const { debuglog } = require('node:util');
+const debug = debuglog('prom:benchmark');
 const Benchmark = require('faceoff').default;
-const debug = require('debug')('benchmark');
 
 /**
  * Async suite workaround. benchmark-regression forwards no options to
