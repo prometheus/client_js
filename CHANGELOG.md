@@ -41,6 +41,7 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Added
 
+- Add debug logging for metrics collection failures.
 - Node 26 added to the test matrix
 - Expanded benchmarking code
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
