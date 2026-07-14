@@ -14,6 +14,8 @@
 
 'use strict';
 
+const { debuglog } = require('node:util');
+const debug = debuglog('prom:metrics:safe-memory-usage');
 const Benchmark = require('faceoff').default;
 
 /**
@@ -40,9 +42,14 @@ benchmarks.suite('summary', require('./summary'));
 benchmarks.suite('registry', require('./registry'));
 benchmarks.suite('cluster', require('./cluster'));
 
-benchmarks.run().catch(err => {
-	console.error('Failure', err);
-	console.error(err.stack);
-	// eslint-disable-next-line n/no-process-exit
-	process.exit(1);
-});
+benchmarks
+	.run()
+	.then(() => {
+		debug('Process end');
+	})
+	.catch(err => {
+		console.error('Failure', err);
+		console.error(err.stack);
+		// eslint-disable-next-line n/no-process-exit
+		process.exit(1);
+	});
