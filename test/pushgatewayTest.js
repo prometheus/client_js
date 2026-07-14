@@ -1,3 +1,17 @@
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 'use strict';
 
 const nock = require('nock');
@@ -324,6 +338,22 @@ describe.each([
 				registers: [registry],
 			});
 			cnt.inc(100);
+		});
+
+		it('should use a registry passed as the second constructor argument', () => {
+			const body =
+				regType === Registry.OPENMETRICS_CONTENT_TYPE
+					? '# HELP test test\n# TYPE test counter\ntest_total 100\n# EOF\n'
+					: '# HELP test test\n# TYPE test counter\ntest 100\n';
+			const mockHttp = nock('http://192.168.99.100:9091')
+				.put('/metrics/job/testJob', body)
+				.reply(200);
+
+			instance = new Pushgateway('http://192.168.99.100:9091', registry);
+
+			return instance.push({ jobName: 'testJob' }).then(() => {
+				expect(mockHttp.isDone());
+			});
 		});
 
 		tests();

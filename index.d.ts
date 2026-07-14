@@ -1,3 +1,17 @@
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Type definitions for @prometheus/client
 // Definitions by: Simon Nyberg http://twitter.com/siimon_nyberg
 
@@ -22,8 +36,13 @@ export type RegistryContentType =
  * Container for all registered metrics
  */
 export class Registry<
-	BoundRegistryContentType extends RegistryContentType = PrometheusContentType,
+	BoundRegistryContentType extends RegistryContentType = RegistryContentType,
 > {
+	/**
+	 * @param regContentType The content type of the registry
+	 */
+	constructor(regContentType?: RegistryContentType);
+
 	/**
 	 * Get string representation for all metrics
 	 */
@@ -49,6 +68,12 @@ export class Registry<
 	 * Get all metrics as objects
 	 */
 	getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
+
+	/**
+	 * Get string representation for a metric
+	 * @param metric Metric to convert to a string
+	 */
+	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
 
 	/**
 	 * Get all metrics as objects
@@ -762,7 +787,12 @@ export class Pushgateway<T extends RegistryContentType> {
 	 * @param options Options
 	 * @param registry Registry
 	 */
-	constructor(url: string, options?: any, registry?: Registry<T>);
+	constructor(url: string, registry: Registry<T>);
+	constructor(
+		url: string,
+		options?: Pushgateway.Options | null,
+		registry?: Registry<T>,
+	);
 
 	/**
 	 * Add metric and overwrite old ones
@@ -790,6 +820,11 @@ export class Pushgateway<T extends RegistryContentType> {
 }
 
 export namespace Pushgateway {
+	interface Options {
+		requireJobName?: boolean;
+		[key: string]: unknown;
+	}
+
 	interface Parameters {
 		/**
 		 * Jobname that is pushing the metric

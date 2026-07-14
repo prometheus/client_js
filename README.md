@@ -17,6 +17,11 @@ will only reveal that individual worker's metrics, which is generally
 undesirable. To solve this, you can aggregate all of the workers' metrics in the
 master process. See `example/cluster.js` for an example.
 
+Instantiate `ClusterRegistry` before branching on `cluster.isPrimary`, as shown
+in the example. Its constructor installs the appropriate IPC listener in each
+process; if only the primary creates it, workers cannot answer aggregation
+requests and `clusterMetrics()` times out.
+
 Default metrics use sensible aggregation methods. (Note, however, that the event
 loop lag mean and percentiles are averaged, which is not perfectly accurate.)
 Custom metrics are summed across workers by default. To use a different

@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+This release marks our first release under the Prometheus umbrella.
+
 ### Breaking
 
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
@@ -15,6 +17,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- Allow `Pushgateway` to accept a custom registry as the second constructor argument
+- Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
 - perf: Faster stats gathering with lower memory overhead
 - Simplified number format logic
@@ -33,11 +37,14 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: update faceoff to 1.1
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
-- perf: Improve the memory usage of histograms by delaying allocation of bucket data
 - fix: Avoid updating exemplar values during subsequent metric changes (Fixes [#616](https://github.com/prometheus/client_js/issues/616))
+- chore: Add copyright license headers and test
+- perf: Improve the memory usage of histograms by delaying allocation of bucket data
 
 ### Added
 
+- Add debug logging for metrics collection failures.
+- Node 26 added to the test matrix
 - Expanded benchmarking code
 - new WorkerRegistry to provide equivalent support to AggregatorRegistry
 - Added examples for Summary metric
