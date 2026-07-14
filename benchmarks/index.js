@@ -15,7 +15,7 @@
 'use strict';
 
 const { debuglog } = require('node:util');
-const debug = debuglog('prom:metrics:safe-memory-usage');
+const debug = debuglog('prom:benchmark');
 const Benchmark = require('faceoff').default;
 
 /**
