@@ -37,7 +37,9 @@ This release marks our first release under the Prometheus umbrella.
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: update faceoff to 1.1
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
+- fix: Avoid updating exemplar values during subsequent metric changes (Fixes [#616](https://github.com/prometheus/client_js/issues/616))
 - chore: Add copyright license headers and test
+- perf: Improve the memory usage of histograms by delaying allocation of bucket data
 
 ### Added
 
