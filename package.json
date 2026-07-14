@@ -53,7 +53,6 @@
 	},
 	"dependencies": {
 		"@opentelemetry/api": "^1.4.0",
-		"debug": "^4.4.1",
 		"tdigest": "^0.1.1"
 	},
 	"types": "./index.d.ts",

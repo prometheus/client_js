@@ -15,7 +15,6 @@
 'use strict';
 
 const Benchmark = require('faceoff').default;
-const debug = require('debug')('benchmark');
 
 /**
  * Async suite workaround. benchmark-regression forwards no options to
@@ -41,14 +40,9 @@ benchmarks.suite('summary', require('./summary'));
 benchmarks.suite('registry', require('./registry'));
 benchmarks.suite('cluster', require('./cluster'));
 
-benchmarks
-	.run()
-	.then(() => {
-		debug('Process end');
-	})
-	.catch(err => {
-		console.error('Failure', err);
-		console.error(err.stack);
-		// eslint-disable-next-line n/no-process-exit
-		process.exit(1);
-	});
+benchmarks.run().catch(err => {
+	console.error('Failure', err);
+	console.error(err.stack);
+	// eslint-disable-next-line n/no-process-exit
+	process.exit(1);
+});
