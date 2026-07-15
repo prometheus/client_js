@@ -15,7 +15,22 @@
 'use strict';
 
 const { EventEmitter } = require('events');
+const { setTimeout: delay } = require('timers/promises');
+const { BroadcastChannel } = require('worker_threads');
 const Registry = require('../lib/worker');
+
+const GET_METRICS_REQ = '@prometheus/client:getMetricsReq';
+const GET_METRICS_RES = '@prometheus/client:getMetricsRes';
+
+function metric(value) {
+	return {
+		help: 'test metric',
+		name: 'test_metric',
+		type: 'gauge',
+		values: [{ labels: {}, value }],
+		aggregator: 'sum',
+	};
+}
 
 describe.each([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
@@ -32,6 +47,55 @@ describe.each([
 			const metrics = await registry.workerMetrics();
 			expect(metrics).toEqual('');
 		});
+
+		if (tag === 'Prometheus')
+			it('aggregates worker responses in thread id order', async () => {
+				const registry = new Registry(regType);
+				const announcementChannel = new BroadcastChannel(
+					'@prometheus/client:announce',
+				);
+				const responders = [1, 2, 3].map(threadId => {
+					const name = `@prometheus/client:test-worker:${threadId}`;
+					registry.addWorker(name);
+					return {
+						threadId,
+						channel: new BroadcastChannel(name),
+					};
+				});
+
+				let finishSendingResponses;
+				const responsesSent = new Promise(resolve => {
+					finishSendingResponses = resolve;
+				});
+				announcementChannel.addEventListener('message', async event => {
+					if (event.data.type !== GET_METRICS_REQ) return;
+
+					for (const [threadId, value] of [
+						[3, 0.3437699],
+						[1, 0.5848208],
+						[2, 0.5479198],
+					]) {
+						responders[threadId - 1].channel.postMessage({
+							type: GET_METRICS_RES,
+							requestId: event.data.requestId,
+							threadId,
+							metrics: [[metric(value)]],
+						});
+						await delay(5);
+					}
+					finishSendingResponses();
+				});
+
+				try {
+					const result = await registry.workerMetrics();
+					await responsesSent;
+					expect(result).toContain('test_metric 1.4765105');
+				} finally {
+					announcementChannel.close();
+					for (const responder of responders) responder.channel.close();
+					for (const channel of registry.channels.values()) channel.close();
+				}
+			});
 	});
 
 	describe('message handling', () => {
@@ -52,7 +116,11 @@ describe.each([
 				requestId: -3,
 			};
 
-			expect(() => emitter.emit('message', unexpected)).not.toThrow();
+			try {
+				expect(() => emitter.emit('message', unexpected)).not.toThrow();
+			} finally {
+				for (const channel of registry.channels.values()) channel.close();
+			}
 		});
 	});
 });
