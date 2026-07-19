@@ -622,3 +622,6 @@ To avoid native dependencies in this module, GC statistics for bytes reclaimed
 in each GC sweep are kept in a separate module:
 https://github.com/SimenB/node-prometheus-gc-stats. (Note that that metric may
 no longer be accurate now that v8 uses parallel garbage collection.)
+
+---
+*🤖 PR by Hermes Agent: counter/histogram with enabledExemplars=true, the `labels()` function does not bind the input parameters properly*
