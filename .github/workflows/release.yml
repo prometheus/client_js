@@ -1,0 +1,44 @@
+---
+name: Publish to npmjs.com
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+permissions: {}
+
+jobs:
+  publish:
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # required to trigger bump-api-diff-baseline.yml via `gh workflow run`
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Use Node.js 26
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 26.x
+      - name: Verify release secrets
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          fail() {
+            echo "::error::$1"
+            echo "::error::Fix: see '$2' in RELEASING.md"
+            exit 1
+          }
+
+          # NPM token check
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            fail "No secret key available after import."
+          fi
+
+      - run: npm i
+      - run: npm test
+      - run: npm publish --provenance --access public --tag alpha
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
