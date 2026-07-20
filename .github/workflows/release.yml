@@ -2,11 +2,9 @@
 name: Publish to npmjs.com
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag to publish (e.g. v1.5.1)'
-        required: true
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 permissions: {}
 
@@ -16,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write # required to trigger bump-api-diff-baseline.yml via `gh workflow run`
+      id-token: write
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -34,11 +33,12 @@ jobs:
           }
 
           # NPM token check
-          if [ -z "${NPM_TOKEN}" ]; then
-            fail "No secret key available after import." \
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            fail "No secret key available after import."
           fi
 
       - run: npm i
-      - run: npm publish --provenance --access public
+      - run: npm test
+      - run: npm publish --provenance --access public --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
