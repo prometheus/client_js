@@ -12,7 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Counter, Pushgateway, Registry } from '../index';
+import {
+	Counter,
+	Pushgateway,
+	Registry,
+	MetricObject,
+	MetricObjectWithValues,
+	MetricValue,
+	MetricValueWithName,
+} from '../index';
 
 const registry = new Registry();
 const counter = new Counter({
@@ -38,3 +46,28 @@ void metricsText;
 void gatewayWithRegistry;
 void gatewayWithOptionsAndRegistry;
 void gatewayWithNullOptionsAndRegistry;
+
+// The metric-object types are exported, so consumers can name the return
+// types of Registry#getMetricsAsJSON()/getMetricsAsArray() and Metric#get()
+// instead of re-deriving them. These annotations fail to compile if the types
+// are removed, renamed, or reshaped.
+async function metricObjectTypesAreExported() {
+	const asJson: MetricObjectWithValues<MetricValue<string>>[] =
+		await registry.getMetricsAsJSON();
+	void asJson;
+
+	const asArray: MetricObject[] = registry.getMetricsAsArray();
+	void asArray;
+
+	const counterSnapshot: MetricObjectWithValues<MetricValue<string>> =
+		await counter.get();
+	void counterSnapshot;
+
+	const named: MetricValueWithName<string> = {
+		value: 1,
+		labels: {},
+		metricName: 'typescript_test_counter',
+	};
+	void named;
+}
+void metricObjectTypesAreExported;

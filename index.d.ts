@@ -279,7 +279,7 @@ export enum MetricType {
 
 type CollectFunction<T> = (this: T) => void | Promise<void>;
 
-interface MetricObject {
+export interface MetricObject {
 	name: string;
 	help: string;
 	type: MetricType;
@@ -287,18 +287,18 @@ interface MetricObject {
 	collect: CollectFunction<any>;
 }
 
-interface MetricObjectWithValues<
+export interface MetricObjectWithValues<
 	T extends MetricValue<string>,
 > extends MetricObject {
 	values: T[];
 }
 
-type MetricValue<T extends string> = {
+export type MetricValue<T extends string> = {
 	value: number;
 	labels: LabelValues<T>;
 };
 
-type MetricValueWithName<T extends string> = MetricValue<T> & {
+export type MetricValueWithName<T extends string> = MetricValue<T> & {
 	metricName?: string;
 };
 
