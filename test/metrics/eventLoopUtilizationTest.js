@@ -20,7 +20,7 @@ describe('eventLoopUtilization', () => {
 		elu(register, { eventLoopUtilizationTimeout: 50 });
 
 		const expectedELU = Math.random();
-		await blockEventLoop(expectedELU, 3000);
+		await blockEventLoop(expectedELU, 800);
 
 		const metrics = await register.getMetricsAsJSON();
 		expect(metrics).toHaveLength(2);
@@ -90,7 +90,7 @@ describe('eventLoopUtilization', () => {
 });
 
 async function blockEventLoop(ratio, ms) {
-	const frameMs = 1000;
+	const frameMs = 100;
 	const framesNumber = Math.round(ms / frameMs);
 
 	const blockedFrameTime = ratio * frameMs;
