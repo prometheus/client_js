@@ -340,6 +340,57 @@ describe('Register', () => {
 			expect(escapedResult).toMatch(/\\"/);
 		});
 
+		it('should escape quotes and newlines in non-string label values', async () => {
+			register.registerMetric({
+				async get() {
+					return {
+						name: 'test_metric',
+						type: 'gauge',
+						help: 'A test metric',
+						values: [
+							{
+								value: 1,
+								labels: {
+									x: ['say "hi"'],
+								},
+							},
+							{
+								value: 2,
+								labels: {
+									y: ['a\nb'],
+								},
+							},
+						],
+					};
+				},
+			});
+			const escapedResult = await register.metrics();
+			expect(escapedResult).toContain('x="say \\"hi\\""');
+			expect(escapedResult).toContain('y="a\\nb"');
+		});
+
+		it('should coerce Symbol label values without throwing', async () => {
+			register.registerMetric({
+				async get() {
+					return {
+						name: 'test_metric',
+						type: 'gauge',
+						help: 'A test metric',
+						values: [
+							{
+								value: 1,
+								labels: {
+									sym: Symbol('x'),
+								},
+							},
+						],
+					};
+				},
+			});
+			const escapedResult = await register.metrics();
+			expect(escapedResult).toContain('sym="Symbol(x)"');
+		});
+
 		describe('should output metrics as JSON', () => {
 			it('should output metrics as JSON', async () => {
 				register.registerMetric(getMetric());
