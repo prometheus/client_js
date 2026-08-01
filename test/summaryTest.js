@@ -58,6 +58,16 @@ describe.each([
 				expect((await instance.get()).values[8].value).toEqual(1);
 			});
 
+			it('should report empty labels for sum and count', async () => {
+				instance.observe(100);
+				// Through the registry, because that is the documented shape.
+				const [{ values }] = await globalRegistry.getMetricsAsJSON();
+				expect(values[7].metricName).toEqual('summary_test_sum');
+				expect(values[7].labels).toEqual({});
+				expect(values[8].metricName).toEqual('summary_test_count');
+				expect(values[8].labels).toEqual({});
+			});
+
 			it('should validate labels when observing', async () => {
 				const summary = new Summary({
 					name: 'foobar',
@@ -182,6 +192,18 @@ describe.each([
 						labelNames: ['method', 'endpoint'],
 						percentiles: [0.9],
 					});
+				});
+
+				it("should report the stored labels, not the caller's object", async () => {
+					const labels = { method: 3, endpoint: '/test' };
+					instance.observe(labels, 50);
+					labels.method = 'mutated afterwards';
+
+					const { values } = await instance.get();
+					expect(values).toHaveLength(3);
+					for (const value of values) {
+						expect(value.labels.method).toEqual('3');
+					}
 				});
 
 				it('should record and calculate the correct values per label', async () => {
