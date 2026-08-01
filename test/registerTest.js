@@ -340,6 +340,47 @@ describe('Register', () => {
 			expect(escapedResult).toMatch(/\\"/);
 		});
 
+		it('should escape non-string label values recorded through a metric', async () => {
+			const gauge = new Gauge({
+				name: 'test_metric',
+				help: 'A test metric',
+				labelNames: ['label', 'code', 'count'],
+			});
+			gauge.set({ label: ['say "hi"'], code: ['a\nb'], count: 3 }, 12);
+
+			const escapedResult = await register.metrics();
+			expect(escapedResult).toMatch(/label="say \\"hi\\""/);
+			expect(escapedResult).toMatch(/code="a\\nb"/);
+			expect(escapedResult).toMatch(/count="3"/);
+		});
+
+		it('should escape summary labels stored inside the summary value', async () => {
+			const summary = new Summary({
+				name: 'test_summary',
+				help: 'A test summary',
+				labelNames: ['x'],
+				percentiles: [0.5],
+			});
+			summary.observe({ x: ['say "hi"'] }, 1);
+
+			const escapedResult = await register.metrics();
+			expect(escapedResult).toMatch(/x="say \\"hi\\""/);
+		});
+
+		it('should render inherited enumerable labels recorded through a metric', async () => {
+			const gauge = new Gauge({
+				name: 'test_metric',
+				help: 'A test metric',
+				labelNames: ['region', 'method'],
+			});
+			const labels = Object.create({ region: 'eu' });
+			labels.method = 'GET';
+			gauge.set(labels, 1);
+
+			const result = await register.metrics();
+			expect(result).toContain('test_metric{method="GET",region="eu"} 1');
+		});
+
 		describe('should output metrics as JSON', () => {
 			it('should output metrics as JSON', async () => {
 				register.registerMetric(getMetric());
@@ -757,7 +798,9 @@ describe('Register', () => {
 		});
 
 		describe('AggregatorRegistry.aggregate()', () => {
-			// These mimic the output of `getMetricsAsJSON`.
+			// Direct aggregate inputs exercising label pass-through — aggregate()
+			// does not normalize, so raw numeric labels here stay raw. (Store-backed
+			// labels in real `getMetricsAsJSON` output arrive already normalized.)
 			const metrics1 = [
 				{
 					name: 'test_histogram',

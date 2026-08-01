@@ -101,7 +101,8 @@ describe.each([
 		expect(allMetricValues.length).toBeGreaterThan(0);
 
 		allMetricValues.forEach(metricValue => {
-			expect(metricValue.labels).toMatchObject(labels);
+			// Label values are normalized to strings at the storage boundary.
+			expect(metricValue.labels).toMatchObject({ NODE_APP_INSTANCE: '0' });
 		});
 	});
 

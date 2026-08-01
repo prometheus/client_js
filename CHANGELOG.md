@@ -46,6 +46,11 @@ This release marks our first release under the Prometheus umbrella.
 - chore: Add copyright license headers and test
 - Make cluster and worker-thread metric aggregation order deterministic
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
+- fix: Non-string label values (except `null`/`undefined`) are coerced to strings when a
+  combination is first stored, so exposition escapes them and `getMetricsAsJSON()` reports
+  them as strings. The store now keeps its own copy of the labels: mutating the caller's
+  object after recording no longer changes the stored series
+- fix: Label-less summaries report `labels: {}` in `getMetricsAsJSON()`, like other metrics
 
 ### Added
 
