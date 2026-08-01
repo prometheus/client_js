@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 This release marks our first release under the Prometheus umbrella.
 
+### Fixed
+
+- Fix escaping for non-string label values without regressing string hot path
+
 ### Breaking
 
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
