@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pushgateway with path and OpenMetrics registry global registry pins the http.request(url, options) call shape (no legacy options translation) 1`] = `
+{
+  "options": {
+    "method": "PUT",
+  },
+  "url": "http://192.168.99.100:9091/path/metrics/job/testJob",
+}
+`;
+
+exports[`pushgateway with path and OpenMetrics registry registry instance pins the http.request(url, options) call shape (no legacy options translation) 1`] = `
+{
+  "options": {
+    "method": "PUT",
+  },
+  "url": "http://192.168.99.100:9091/path/metrics/job/testJob",
+}
+`;
+
+exports[`pushgateway with path and Prometheus registry global registry pins the http.request(url, options) call shape (no legacy options translation) 1`] = `
+{
+  "options": {
+    "method": "PUT",
+  },
+  "url": "http://192.168.99.100:9091/path/metrics/job/testJob",
+}
+`;
+
+exports[`pushgateway with path and Prometheus registry registry instance pins the http.request(url, options) call shape (no legacy options translation) 1`] = `
+{
+  "options": {
+    "method": "PUT",
+  },
+  "url": "http://192.168.99.100:9091/path/metrics/job/testJob",
+}
+`;

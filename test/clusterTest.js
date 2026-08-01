@@ -1,8 +1,34 @@
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 'use strict';
 
 const cluster = require('cluster');
 const process = require('process');
 const Registry = require('../lib/cluster');
+
+const GET_METRICS_RES = '@prometheus/client:getMetricsRes';
+
+function metric(value) {
+	return {
+		help: 'test metric',
+		name: 'test_metric',
+		type: 'gauge',
+		values: [{ labels: {}, value }],
+		aggregator: 'sum',
+	};
+}
 
 describe.each([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
@@ -47,211 +73,42 @@ describe.each([
 			const metrics = await ar.clusterMetrics();
 			expect(metrics).toEqual('');
 		});
-	});
 
-	describe('AggregatorRegistry.aggregate()', () => {
-		// These mimic the output of `getMetricsAsJSON`.
-		const metricsArr1 = [
-			{
-				name: 'test_histogram',
-				help: 'Example of a histogram',
-				type: 'histogram',
-				values: [
+		it('aggregates worker responses in worker id order', async () => {
+			const originalWorkers = cluster.workers;
+			const workers = Object.fromEntries(
+				[1, 2, 3].map(id => [
+					id,
 					{
-						labels: { le: 0.1, code: '300' },
-						value: 0,
-						metricName: 'test_histogram_bucket',
+						id,
+						isConnected: () => true,
+						send: jest.fn(),
 					},
-					{
-						labels: { le: 10, code: '300' },
-						value: 1.6486727018068046,
-						metricName: 'test_histogram_bucket',
-					},
-				],
-				aggregator: 'sum',
-			},
-			{
-				help: 'Example of a gauge',
-				name: 'test_gauge',
-				type: 'gauge',
-				values: [
-					{ value: 0.47, labels: { method: 'get', code: 200 } },
-					{ value: 0.64, labels: {} },
-					{ value: 23, labels: { method: 'post', code: '300' } },
-				],
-				aggregator: 'sum',
-			},
-			{
-				help: 'Start time of the process since unix epoch in seconds.',
-				name: 'process_start_time_seconds',
-				type: 'gauge',
-				values: [{ value: 1502075832, labels: {} }],
-				aggregator: 'omit',
-			},
-			{
-				help: 'Lag of event loop in seconds.',
-				name: 'nodejs_eventloop_lag_seconds',
-				type: 'gauge',
-				values: [{ value: 0.009, labels: {} }],
-				aggregator: 'average',
-			},
-			{
-				help: 'Node.js version info.',
-				name: 'nodejs_version_info',
-				type: 'gauge',
-				values: [
-					{
-						value: 1,
-						labels: { version: 'v6.11.1', major: 6, minor: 11, patch: 1 },
-					},
-				],
-				aggregator: 'first',
-			},
-		];
-		const metricsArr2 = [
-			{
-				name: 'test_histogram',
-				help: 'Example of a histogram',
-				type: 'histogram',
-				values: [
-					{
-						labels: { le: 0.1, code: '300' },
-						value: 0.235151,
-						metricName: 'test_histogram_bucket',
-					},
-					{
-						labels: { le: 10, code: '300' },
-						value: 1.192591,
-						metricName: 'test_histogram_bucket',
-					},
-				],
-				aggregator: 'sum',
-			},
-			{
-				help: 'Example of a gauge',
-				name: 'test_gauge',
-				type: 'gauge',
-				values: [
-					{ value: 0.02, labels: { method: 'get', code: 200 } },
-					{ value: 0.24, labels: {} },
-					{ value: 51, labels: { method: 'post', code: '300' } },
-				],
-				aggregator: 'sum',
-			},
-			{
-				help: 'Start time of the process since unix epoch in seconds.',
-				name: 'process_start_time_seconds',
-				type: 'gauge',
-				values: [{ value: 1502075849, labels: {} }],
-				aggregator: 'omit',
-			},
-			{
-				help: 'Lag of event loop in seconds.',
-				name: 'nodejs_eventloop_lag_seconds',
-				type: 'gauge',
-				values: [{ value: 0.008, labels: {} }],
-				aggregator: 'average',
-			},
-			{
-				help: 'Node.js version info.',
-				name: 'nodejs_version_info',
-				type: 'gauge',
-				values: [
-					{
-						value: 1,
-						labels: { version: 'v6.11.1', major: 6, minor: 11, patch: 1 },
-					},
-				],
-				aggregator: 'first',
-			},
-		];
-
-		const aggregated = Registry.aggregate([metricsArr1, metricsArr2], regType);
-
-		it('defaults to summation, preserves histogram bins', async () => {
-			const histogram = aggregated.getSingleMetric('test_histogram').get();
-			expect(histogram).toEqual({
-				name: 'test_histogram',
-				help: 'Example of a histogram',
-				type: 'histogram',
-				values: [
-					{
-						labels: { le: 0.1, code: '300' },
-						value: 0.235151,
-						metricName: 'test_histogram_bucket',
-					},
-					{
-						labels: { le: 10, code: '300' },
-						value: 2.8412637018068043,
-						metricName: 'test_histogram_bucket',
-					},
-				],
-				aggregator: 'sum',
-			});
-		});
-
-		it('defaults to summation, works for gauges', () => {
-			const gauge = aggregated.getSingleMetric('test_gauge').get();
-			expect(gauge).toEqual({
-				help: 'Example of a gauge',
-				name: 'test_gauge',
-				type: 'gauge',
-				values: [
-					{ value: 0.49, labels: { method: 'get', code: 200 } },
-					{ value: 0.88, labels: {} },
-					{ value: 74, labels: { method: 'post', code: '300' } },
-				],
-				aggregator: 'sum',
-			});
-		});
-
-		it('uses `aggregate` method defined for process_start_time', () => {
-			const procStartTime = aggregated.getSingleMetric(
-				'process_start_time_seconds',
+				]),
 			);
-			expect(procStartTime).toBeUndefined();
-		});
+			cluster.workers = workers;
 
-		it('uses `aggregate` method defined for nodejs_eventloop_lag_seconds', () => {
-			const ell = aggregated
-				.getSingleMetric('nodejs_eventloop_lag_seconds')
-				.get();
-			expect(ell).toEqual({
-				help: 'Lag of event loop in seconds.',
-				name: 'nodejs_eventloop_lag_seconds',
-				type: 'gauge',
-				values: [{ value: 0.0085, labels: {} }],
-				aggregator: 'average',
-			});
-		});
+			try {
+				const registry = new Registry(regType);
+				const result = registry.clusterMetrics();
+				const requestId = workers[1].send.mock.calls[0][0].requestId;
 
-		it('uses `aggregate` method defined for nodejs_evnetloop_lag_seconds', () => {
-			const ell = aggregated
-				.getSingleMetric('nodejs_eventloop_lag_seconds')
-				.get();
-			expect(ell).toEqual({
-				help: 'Lag of event loop in seconds.',
-				name: 'nodejs_eventloop_lag_seconds',
-				type: 'gauge',
-				values: [{ value: 0.0085, labels: {} }],
-				aggregator: 'average',
-			});
-		});
+				for (const [id, value] of [
+					[3, 0.3437699],
+					[1, 0.5848208],
+					[2, 0.5479198],
+				]) {
+					cluster.emit('message', workers[id], {
+						type: GET_METRICS_RES,
+						requestId,
+						metrics: [[metric(value)]],
+					});
+				}
 
-		it('uses `aggregate` method defined for nodejs_version_info', () => {
-			const version = aggregated.getSingleMetric('nodejs_version_info').get();
-			expect(version).toEqual({
-				help: 'Node.js version info.',
-				name: 'nodejs_version_info',
-				type: 'gauge',
-				values: [
-					{
-						value: 1,
-						labels: { version: 'v6.11.1', major: 6, minor: 11, patch: 1 },
-					},
-				],
-				aggregator: 'first',
-			});
+				await expect(result).resolves.toContain('test_metric 1.4765105');
+			} finally {
+				cluster.workers = originalWorkers;
+			}
 		});
 	});
 
@@ -263,7 +120,7 @@ describe.each([
 
 			//Emulate a response that has been deleted from requests
 			const unexpected = {
-				type: 'prom-client:getMetricsRes',
+				type: '@prometheus/client:getMetricsRes',
 				metrics: ['{}'],
 				requestId: -3,
 			};

@@ -1,4 +1,18 @@
-// Type definitions for prom-client
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Type definitions for @prometheus/client
 // Definitions by: Simon Nyberg http://twitter.com/siimon_nyberg
 
 export type Charset = 'utf-8';
@@ -22,8 +36,13 @@ export type RegistryContentType =
  * Container for all registered metrics
  */
 export class Registry<
-	BoundRegistryContentType extends RegistryContentType = PrometheusContentType,
+	BoundRegistryContentType extends RegistryContentType = RegistryContentType,
 > {
+	/**
+	 * @param regContentType The content type of the registry
+	 */
+	constructor(regContentType?: RegistryContentType);
+
 	/**
 	 * Get string representation for all metrics
 	 */
@@ -49,6 +68,12 @@ export class Registry<
 	 * Get all metrics as objects
 	 */
 	getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
+
+	/**
+	 * Get string representation for a metric
+	 * @param metric Metric to convert to a string
+	 */
+	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
 
 	/**
 	 * Get all metrics as objects
@@ -83,20 +108,35 @@ export class Registry<
 	/**
 	 * Gets the Content-Type of the metrics for use in the response headers.
 	 */
-	readonly contentType: BoundRegistryContentType;
+	readonly contentType: PrometheusContentType | OpenMetricsContentType;
 
 	/**
 	 * Set the content type of a registry. Used to change between Prometheus and
 	 * OpenMetrics versions.
 	 * @param contentType The type of the registry
 	 */
-	setContentType(contentType: BoundRegistryContentType): void;
+	setContentType(
+		contentType: PrometheusContentType | OpenMetricsContentType,
+	): void;
 
 	/**
 	 * Merge registers
 	 * @param registers The registers you want to merge together
 	 */
 	static merge(registers: Registry[]): Registry;
+
+	/**
+	 * Creates a new Registry instance from an array of metrics that were
+	 * created by `registry.getMetricsAsJSON()`. Metrics are aggregated using
+	 * the method specified by their `aggregator` property, or by summation if
+	 * `aggregator` is undefined.
+	 * @param {Array} metricsArr Array of metrics, each of which created by
+	 *   `registry.getMetricsAsJSON()`.
+	 * @returns {Registry} aggregated registry.
+	 */
+	static aggregate<T extends RegistryContentType>(
+		metricsArr: Array<object>,
+	): Registry<T>; // TODO Promise?
 
 	/**
 	 * HTTP Prometheus Content-Type for metrics response headers.
@@ -131,7 +171,7 @@ export const prometheusContentType: PrometheusContentType;
  */
 export const openMetricsContentType: OpenMetricsContentType;
 
-export class AggregatorRegistry<
+export class ClusterRegistry<
 	T extends RegistryContentType,
 > extends Registry<T> {
 	/**
@@ -142,17 +182,60 @@ export class AggregatorRegistry<
 	clusterMetrics(): Promise<string>;
 
 	/**
-	 * Creates a new Registry instance from an array of metrics that were
-	 * created by `registry.getMetricsAsJSON()`. Metrics are aggregated using
-	 * the method specified by their `aggregator` property, or by summation if
-	 * `aggregator` is undefined.
-	 * @param {Array} metricsArr Array of metrics, each of which created by
-	 *   `registry.getMetricsAsJSON()`.
-	 * @returns {Registry} aggregated registry.
+	 * Sets the registry or registries to be aggregated. Call from workers to
+	 * use a registry/registries other than the default global registry.
+	 * @param {Array<Registry>|Registry} regs Registry or registries to be
+	 *   aggregated.
+	 * @returns {void}
 	 */
-	static aggregate<T extends RegistryContentType>(
-		metricsArr: Array<object>,
-	): Registry<T>; // TODO Promise?
+	static setRegistries(
+		regs:
+			| Array<
+					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
+			  >
+			| Registry<PrometheusContentType>
+			| Registry<OpenMetricsContentType>,
+	): void;
+}
+
+export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
+	/**
+	 * Gets aggregated metrics for all workers.
+	 * @returns {Promise<string>} Promise that resolves with the aggregated
+	 * metrics.
+	 */
+	workerMetrics(): Promise<string>;
+
+	addWorker(worker: Worker): void;
+	/**
+	 * Sets the registry or registries to be aggregated. Call from workers to
+	 * use a registry/registries other than the default global registry.
+	 * @param {Array<Registry>|Registry} regs Registry or registries to be
+	 *   aggregated.
+	 * @returns {void}
+	 */
+	static setRegistries(
+		regs:
+			| Array<
+					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
+			  >
+			| Registry<PrometheusContentType>
+			| Registry<OpenMetricsContentType>,
+	): void;
+}
+
+/**
+ * @deprecated
+ */
+export class AggregatorRegistry<
+	T extends RegistryContentType,
+> extends Registry<T> {
+	/**
+	 * Gets aggregated metrics for all workers.
+	 * @returns {Promise<string>} Promise that resolves with the aggregated
+	 * metrics.
+	 */
+	clusterMetrics(): Promise<string>;
 
 	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
@@ -196,7 +279,7 @@ export enum MetricType {
 
 type CollectFunction<T> = (this: T) => void | Promise<void>;
 
-interface MetricObject {
+export interface MetricObject {
 	name: string;
 	help: string;
 	type: MetricType;
@@ -204,17 +287,18 @@ interface MetricObject {
 	collect: CollectFunction<any>;
 }
 
-interface MetricObjectWithValues<T extends MetricValue<string>>
-	extends MetricObject {
+export interface MetricObjectWithValues<
+	T extends MetricValue<string>,
+> extends MetricObject {
 	values: T[];
 }
 
-type MetricValue<T extends string> = {
+export type MetricValue<T extends string> = {
 	value: number;
 	labels: LabelValues<T>;
 };
 
-type MetricValueWithName<T extends string> = MetricValue<T> & {
+export type MetricValueWithName<T extends string> = MetricValue<T> & {
 	metricName?: string;
 };
 
@@ -235,8 +319,9 @@ interface MetricConfiguration<T extends string> {
 	enableExemplars?: boolean;
 }
 
-export interface CounterConfiguration<T extends string>
-	extends MetricConfiguration<T> {
+export interface CounterConfiguration<
+	T extends string,
+> extends MetricConfiguration<T> {
 	collect?: CollectFunction<Counter<T>>;
 }
 
@@ -327,8 +412,9 @@ export namespace Counter {
 	}
 }
 
-export interface GaugeConfiguration<T extends string>
-	extends MetricConfiguration<T> {
+export interface GaugeConfiguration<
+	T extends string,
+> extends MetricConfiguration<T> {
 	collect?: CollectFunction<Gauge<T>>;
 }
 
@@ -467,8 +553,9 @@ export namespace Gauge {
 	}
 }
 
-export interface HistogramConfiguration<T extends string>
-	extends MetricConfiguration<T> {
+export interface HistogramConfiguration<
+	T extends string,
+> extends MetricConfiguration<T> {
 	buckets?: number[];
 	collect?: CollectFunction<Histogram<T>>;
 }
@@ -589,8 +676,9 @@ export namespace Histogram {
 	}
 }
 
-export interface SummaryConfiguration<T extends string>
-	extends MetricConfiguration<T> {
+export interface SummaryConfiguration<
+	T extends string,
+> extends MetricConfiguration<T> {
 	percentiles?: number[];
 	maxAgeSeconds?: number;
 	ageBuckets?: number;
@@ -699,7 +787,12 @@ export class Pushgateway<T extends RegistryContentType> {
 	 * @param options Options
 	 * @param registry Registry
 	 */
-	constructor(url: string, options?: any, registry?: Registry<T>);
+	constructor(url: string, registry: Registry<T>);
+	constructor(
+		url: string,
+		options?: Pushgateway.Options | null,
+		registry?: Registry<T>,
+	);
 
 	/**
 	 * Add metric and overwrite old ones
@@ -727,6 +820,11 @@ export class Pushgateway<T extends RegistryContentType> {
 }
 
 export namespace Pushgateway {
+	interface Options {
+		requireJobName?: boolean;
+		[key: string]: unknown;
+	}
+
 	interface Parameters {
 		/**
 		 * Jobname that is pushing the metric
@@ -790,6 +888,11 @@ export interface DefaultMetricsCollectorConfiguration<
 	prefix?: string;
 	gcDurationBuckets?: number[];
 	eventLoopMonitoringPrecision?: number;
+	eventLoopUtilizationTimeout?: number;
+	eventLoopUtilizationBuckets?: number[];
+	eventLoopUtilizationPercentiles?: number[];
+	eventLoopUtilizationAgeBuckets?: number;
+	eventLoopUtilizationMaxAgeSeconds?: number;
 	labels?: object;
 	exclude?: AvailableDefaultMetrics[];
 }

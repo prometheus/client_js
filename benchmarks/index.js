@@ -1,8 +1,22 @@
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 'use strict';
 
-const createRegressionBenchmark = require('@clevernature/benchmark-regression');
-const { Benchmark } = require('benchmark');
-const debug = require('debug')('benchmark');
+const { debuglog } = require('node:util');
+const debug = debuglog('prom:benchmark');
+const Benchmark = require('faceoff').default;
 
 /**
  * Async suite workaround. benchmark-regression forwards no options to
@@ -13,42 +27,19 @@ const debug = require('debug')('benchmark');
  * 2018, that situation is unlikely to change soon.
  */
 
-Benchmark.options.defer = true;
-Benchmark.options.onStart = event => {
-	const benchmark = event.target;
-	const name = benchmark.name;
-	const original = benchmark.fn;
-
-	debug(`Starting '${name}'`);
-
-	benchmark.fn = async deferred => {
-		try {
-			await original();
-		} catch (e) {
-			console.error(e);
-		} finally {
-			deferred.resolve();
-		}
-	};
-};
-Benchmark.options.onAbort = event => {
-	console.error(event);
-};
-Benchmark.options.onError = event => {
-	console.error(event);
-};
-
-const currentClient = require('..');
-const benchmarks = createRegressionBenchmark(
-	{ name: 'prom-client@current', module: currentClient },
-	['prom-client@latest'],
-);
+const benchmarks = new Benchmark({
+	// TODO: Update this once the module is published to as @prometheus/client.
+	'@prometheus/client@latest': 'prom-client@latest',
+	'@prometheus/client@trunk': 'git@github.com:prometheus/client_js',
+	'@prometheus/client@current': { location: process.cwd() },
+});
 
 benchmarks.suite('counter', require('./counter'));
 benchmarks.suite('gauge', require('./gauge'));
 benchmarks.suite('histogram', require('./histogram'));
-benchmarks.suite('registry', require('./registry'));
+benchmarks.suite('util', require('./util'));
 benchmarks.suite('summary', require('./summary'));
+benchmarks.suite('registry', require('./registry'));
 benchmarks.suite('cluster', require('./cluster'));
 
 benchmarks

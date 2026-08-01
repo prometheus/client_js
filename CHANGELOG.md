@@ -7,14 +7,19 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+This release marks our first release under the Prometheus umbrella.
+
 ### Breaking
 
-- Drop support for Node.js versions 16, 18, 21 and 23
-- Metric internal storage ('hashMap') changed to Map from Object. If you have
+- Drop support for Node.js versions 16, 18, 20, 21 and 23
+- Metric internal storage ('hashMap') changed to a separate object, LabelMap. If you have
   subclassed the built-in metric types you may need to adjust your code.
+- Counter Exemplars now report the value rather than the delta
 
 ### Changed
 
+- Allow `Pushgateway` to accept a custom registry as the second constructor argument
+- Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
 - perf: Faster stats gathering with lower memory overhead
 - Simplified number format logic
@@ -22,10 +27,29 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Fix memory leak in cluster.js by deleting all expired requests
 - perf: Sped up Map accesses
 - perf: Remove truthy conditionals in hot code paths
+- Show the invalid name in the validation errors
+- perf: Improve performance of registry defaultLabels during metric processing
+- perf: New, more space-efficient storage engine, 20-45% faster stats recording
+- perf: Further improvement to key generation cost
+- perf: Use faster `process.memoryUsage.rss()` API for resident memory collection (30-40% more ops/sec)
+- fix: Browser compatibility for Gauge.startTimer()
+- ci: Run benchmarks for pull requests
+- ci: switch out deprecated benchmark-regression library for replacement
+- AggregatorRegistry renamed to ClusterRegistry, old name deprecated
+- chore: update faceoff to 1.1
+- perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
+- chore: Add copyright license headers and test
+- Make cluster and worker-thread metric aggregation order deterministic
+- Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
 
 ### Added
 
+- Add `nodejs_eventloop_utilization_summary` and `nodejs_eventloop_utilization_histogram` to the default metrics
+- Add debug logging for metrics collection failures.
+- Node 26 added to the test matrix
 - Expanded benchmarking code
+- new WorkerRegistry to provide equivalent support to AggregatorRegistry
+- Added examples for Summary metric
 
 ## [15.1.3] - 2024-06-27
 
@@ -42,14 +66,14 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Enable `bun.js` by catching `NotImplemented` error (Fixes [#570](https://github.com/siimon/prom-client/issues/570))
+- Enable `bun.js` by catching `NotImplemented` error (Fixes [#570](https://github.com/prometheus/client_js/issues/570))
 
 ## [15.1.1] - 2024-03-26
 
 ### Changed
 
 - Improve the memory usage of histograms when the `enableExemplars` option is disabled
-- fix: Avoid updating exemplar values during subsequent metric changes (Fixes [#616](https://github.com/siimon/prom-client/issues/616))
+- fix: Avoid updating exemplar values during subsequent metric changes (Fixes [#616](https://github.com/prometheus/client_js/issues/616))
 
 ## [15.1.0] - 2023-12-15
 
@@ -64,7 +88,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Allow Pushgateway to now require job names for compatibility with Gravel Gateway.
 - Allow `histogram.startTime()` to be used with exemplars.
 
-[15.1.0]: https://github.com/siimon/prom-client/compare/v15.0.0...v15.1.0
+[15.1.0]: https://github.com/prometheus/client_js/compare/v15.0.0...v15.1.0
 
 ## [15.0.0] - 2023-10-09
 
@@ -90,7 +114,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Support for OpenMetrics and Exemplars
 
-[15.0.0]: https://github.com/siimon/prom-client/compare/v14.2.0...v15.0.0
+[15.0.0]: https://github.com/prometheus/client_js/compare/v14.2.0...v15.0.0
 
 ## [14.2.0] - 2023-03-06
 
@@ -108,7 +132,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Add `get` method to type definitions of metric classes
 
-[14.2.0]: https://github.com/siimon/prom-client/compare/v14.1.1...v14.2.0
+[14.2.0]: https://github.com/prometheus/client_js/compare/v14.1.1...v14.2.0
 
 ## [14.1.1] - 2022-12-31
 
@@ -116,7 +140,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Increase compatibility with external build system such as `rollup` by making perf_hooks optional in gc.js
 
-[14.1.1]: https://github.com/siimon/prom-client/compare/v14.1.0...v14.1.1
+[14.1.1]: https://github.com/prometheus/client_js/compare/v14.1.0...v14.1.1
 
 ## [14.1.0] - 2022-08-23
 
@@ -145,7 +169,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Support gzipped pushgateway requests
 
-[14.1.0]: https://github.com/siimon/prom-client/compare/v14.0.1...v14.1.0
+[14.1.0]: https://github.com/prometheus/client_js/compare/v14.0.1...v14.1.0
 
 ## [14.0.1] - 2021-11-02
 
@@ -153,7 +177,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - changed: typedef for pushgateway to reflect js implementation.
 
-[14.0.1]: https://github.com/siimon/prom-client/compare/v14.0.0...v14.0.1
+[14.0.1]: https://github.com/prometheus/client_js/compare/v14.0.0...v14.0.1
 
 ## [14.0.0] - 2021-09-18
 
@@ -162,7 +186,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - changed: `linearBuckets` does not propagate rounding errors anymore.
 
   Fewer bucket bounds will be affected by rounding errors. Histogram bucket
-  labels may change. [`6f1f3b2`](https://github.com/siimon/prom-client/commit/6f1f3b24c9c21311ff33e7d4b987b40c6b304e04)
+  labels may change. [`6f1f3b2`](https://github.com/prometheus/client_js/commit/6f1f3b24c9c21311ff33e7d4b987b40c6b304e04)
 
 - changed: The push gateway methods `pushAdd()`, `push()` and `delete()` now
   return Promises instead of accepting a callback:
@@ -179,20 +203,20 @@ project adheres to [Semantic Versioning](http://semver.org/).
   const { resp, body } = await gateway.pushAdd({ jobName: 'test' });
   ```
 
-  [`f177b1f`](https://github.com/siimon/prom-client/commit/f177b1fd3d4db5fc48fcb1ec02d94069fffcf144)
+  [`f177b1f`](https://github.com/prometheus/client_js/commit/f177b1fd3d4db5fc48fcb1ec02d94069fffcf144)
 
 - changed: The default `nodejs_eventloop_lag_*` metrics are now reset every time
   they are observed. This prevents these metrics from "stabilizing" over a long
   period of time and becoming insensitive to small changes. For more info, see
-  [#370](https://github.com/siimon/prom-client/issues/370). [`0f444cd`](https://github.com/siimon/prom-client/commit/0f444cd38e4c7074991270106c270f731bafddb8)
+  [#370](https://github.com/prometheus/client_js/issues/370). [`0f444cd`](https://github.com/prometheus/client_js/commit/0f444cd38e4c7074991270106c270f731bafddb8)
 
 ### Changed
 
-- Add missing `await`/`then`s to examples. [`074f339`](https://github.com/siimon/prom-client/commit/074f339914e5d71b5829cd4a949affae23dbc409)
-- Add missing type declaration for `client.contentType`. [`3b66641`](https://github.com/siimon/prom-client/commit/3b6664160bdd1555045b03d8f4c421022f30e1db)
-- Modernize some label processing code. [`c9bf1d8`](https://github.com/siimon/prom-client/commit/c9bf1d8e3db3b5fb97faf2df9ca9b9af670288f3)
+- Add missing `await`/`then`s to examples. [`074f339`](https://github.com/prometheus/client_js/commit/074f339914e5d71b5829cd4a949affae23dbc409)
+- Add missing type declaration for `client.contentType`. [`3b66641`](https://github.com/prometheus/client_js/commit/3b6664160bdd1555045b03d8f4c421022f30e1db)
+- Modernize some label processing code. [`c9bf1d8`](https://github.com/prometheus/client_js/commit/c9bf1d8e3db3b5fb97faf2df9ca9b9af670288f3)
 
-[14.0.0]: https://github.com/siimon/prom-client/compare/v13.2.0...v14.0.0
+[14.0.0]: https://github.com/prometheus/client_js/compare/v13.2.0...v14.0.0
 
 ## [13.2.0] - 2021-08-08
 
@@ -201,7 +225,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Don't add event listener to `process` if cluster module is not used.
 - fix: set labels for default memory metrics on linux.
 - fix: fix DEP0152 deprecation warning in Node.js v16+.
-- fix: Set aggregation mode for newer event loop metrics. (Fixes [#418](https://github.com/siimon/prom-client/issues/418))
+- fix: Set aggregation mode for newer event loop metrics. (Fixes [#418](https://github.com/prometheus/client_js/issues/418))
 - Improve performance of/reduce memory allocations in Gauge.
 
 ### Added
@@ -209,22 +233,22 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - feat: added `zero()` to `Histogram` for setting the metrics for a given label combination to zero
 - fix: allow `Gauge.inc/dec(0)` without defaulting to 1
 
-[13.2.0]: https://github.com/siimon/prom-client/compare/v13.1.0...v13.2.0
+[13.2.0]: https://github.com/prometheus/client_js/compare/v13.1.0...v13.2.0
 
 ## [13.1.0] - 2021-01-24
 
 ### Changed
 
-- fix: push client attempting to write Promise (fixes [#390](https://github.com/siimon/prom-client/issues/390))
+- fix: push client attempting to write Promise (fixes [#390](https://github.com/prometheus/client_js/issues/390))
 - types: improve type checking of labels
-- fix: Summary#observe should throw when adding additional labels to labelset (fixes [#262](https://github.com/siimon/prom-client/issues/262))
+- fix: Summary#observe should throw when adding additional labels to labelset (fixes [#262](https://github.com/prometheus/client_js/issues/262))
 
 ### Added
 
 - feat: added the ability to pass labels as an object to `labels()` and `remove()`
 - Added: More examples with commented output
 
-[13.1.0]: https://github.com/siimon/prom-client/compare/v13.0.0...v13.1.0
+[13.1.0]: https://github.com/prometheus/client_js/compare/v13.0.0...v13.1.0
 
 ## [13.0.0] - 2020-12-16
 
@@ -273,7 +297,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - feat: added support for adding labels to default metrics (#374)
 - Added CHANGELOG reminder
 
-[13.0.0]: https://github.com/siimon/prom-client/compare/v12.0.0...v13.0.0
+[13.0.0]: https://github.com/prometheus/client_js/compare/v12.0.0...v13.0.0
 
 ## [12.0.0] - 2020-02-20
 
@@ -305,7 +329,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - feat: implement GC metrics collection without native(C++) modules.
 - feat: implement advanced event loop monitoring
 
-[12.0.0]: https://github.com/siimon/prom-client/compare/v11.5.3...v12.0.0
+[12.0.0]: https://github.com/prometheus/client_js/compare/v11.5.3...v12.0.0
 
 ## [11.5.3] - 2019-06-27
 
@@ -314,7 +338,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Parameter `compressCount` in Summaries to control compression of data in t-digest.
 - Compress t-digest in Summaries
 
-[11.5.3]: https://github.com/siimon/prom-client/compare/v11.5.2...v11.5.3
+[11.5.3]: https://github.com/prometheus/client_js/compare/v11.5.2...v11.5.3
 
 ## [11.5.2] - 2019-06-20
 
@@ -322,7 +346,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - fix: avoid mutation bug in registry
 
-[11.5.2]: https://github.com/siimon/prom-client/compare/v11.5.1...v11.5.2
+[11.5.2]: https://github.com/prometheus/client_js/compare/v11.5.1...v11.5.2
 
 ## [11.5.1] - 2019-06-13
 
@@ -330,7 +354,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - fix: guard against missing constructor
 
-[11.5.1]: https://github.com/siimon/prom-client/compare/v11.5.0...v11.5.1
+[11.5.1]: https://github.com/prometheus/client_js/compare/v11.5.0...v11.5.1
 
 ## [11.5.0] - 2019-06-04
 
@@ -339,7 +363,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added `timestamps` toggle to `collectDefaultMetrics` options
 - Export `validateMetricName`
 
-[11.5.0]: https://github.com/siimon/prom-client/compare/v11.4.0...v11.5.0
+[11.5.0]: https://github.com/prometheus/client_js/compare/v11.4.0...v11.5.0
 
 ## [11.4.0] - 2019-06-04
 
@@ -348,7 +372,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - `nodejs_active_handles` metric to the `collectDefaultMetrics()`. Unlike `nodejs_active_handles_total` it split count of active handles by type.
 - `nodejs_active_requests` metric to the `collectDefaultMetrics()`. Unlike `nodejs_active_requests_total` it split count of active requests by type.
 
-[11.4.0]: https://github.com/siimon/prom-client/compare/v11.3.0...v11.4.0
+[11.4.0]: https://github.com/prometheus/client_js/compare/v11.3.0...v11.4.0
 
 ## [11.3.0] - 2019-04-02
 
@@ -361,7 +385,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added a `remove()` method on each metric type, based on [Prometheus "Writing Client Libraries" section on labels](https://prometheus.io/docs/instrumenting/writing_clientlibs/#labels)
 
-[11.3.0]: https://github.com/siimon/prom-client/compare/v11.2.1...v11.3.0
+[11.3.0]: https://github.com/prometheus/client_js/compare/v11.2.1...v11.3.0
 
 ## [11.2.1]
 
@@ -373,7 +397,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Updated types for Summary in typescript definition file
 
-[11.2.1]: https://github.com/siimon/prom-client/compare/v11.2.0...v11.2.1
+[11.2.1]: https://github.com/prometheus/client_js/compare/v11.2.0...v11.2.1
 
 ## [11.2.0]
 
@@ -386,7 +410,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Added an initial `benchmark` suite which can be run with `npm run benchmarks`.
 - Add support for sliding windows in Summaries
 
-[11.2.0]: https://github.com/siimon/prom-client/compare/v11.1.3...v11.2.0
+[11.2.0]: https://github.com/prometheus/client_js/compare/v11.1.3...v11.2.0
 
 ## [11.1.3] - 2018-09-22
 
@@ -395,7 +419,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Fixed performance by avoiding `Object.assign` on hot paths, as well as
   mutating objects when appropriate.
 
-[11.1.3]: https://github.com/siimon/prom-client/compare/v11.1.2...v11.1.3
+[11.1.3]: https://github.com/prometheus/client_js/compare/v11.1.2...v11.1.3
 
 ## [11.1.2] - 2018-09-19
 
@@ -404,7 +428,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Allow setting Gauge values to NaN, +Inf, and -Inf
 - Fixed `histogram` scrape performance by using `acc.push` instead of `acc.concat`. Fixes #216 with #219
 
-[11.1.2]: https://github.com/siimon/prom-client/compare/v11.1.1...v11.1.2
+[11.1.2]: https://github.com/prometheus/client_js/compare/v11.1.1...v11.1.2
 
 ## [11.1.1] - 2018-06-29
 
@@ -412,7 +436,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed `processOpenFileDescriptors` metric when no custom config was set
 
-[11.1.1]: https://github.com/siimon/prom-client/compare/v11.1.0...v11.1.1
+[11.1.1]: https://github.com/prometheus/client_js/compare/v11.1.0...v11.1.1
 
 ## [11.1.0] - 2018-06-29
 
@@ -425,7 +449,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
   labelset
 - Fixed `AggregatorFactory` losing the aggregator method of metrics
 
-[11.1.0]: https://github.com/siimon/prom-client/compare/v11.0.0...v11.1.0
+[11.1.0]: https://github.com/prometheus/client_js/compare/v11.0.0...v11.1.0
 
 ## [11.0.0] - 2018-03-10
 
@@ -436,7 +460,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
     [best practices](https://prometheus.io/docs/practices/naming/#base-units)
 - Dropped support for node 4
 
-[11.0.0]: https://github.com/siimon/prom-client/compare/v10.2.3...v11.0.0
+[11.0.0]: https://github.com/prometheus/client_js/compare/v10.2.3...v11.0.0
 
 ## [10.2.3] - 2018-02-28
 
@@ -448,7 +472,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-[10.2.3]: https://github.com/siimon/prom-client/compare/v10.2.2...v10.2.3
+[10.2.3]: https://github.com/prometheus/client_js/compare/v10.2.2...v10.2.3
 
 ## [10.2.2] - 2017-11-02
 
@@ -573,16 +597,16 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Creating metrics with one argument per parameter - use object literals
   instead.
 
-[10.2.2]: https://github.com/siimon/prom-client/compare/v10.2.1...v10.2.2
-[10.2.1]: https://github.com/siimon/prom-client/compare/v10.2.0...v10.2.1
-[10.2.0]: https://github.com/siimon/prom-client/compare/v10.1.1...v10.2.0
-[10.1.1]: https://github.com/siimon/prom-client/compare/v10.1.0...v10.1.1
-[10.1.0]: https://github.com/siimon/prom-client/compare/v10.0.4...v10.1.0
-[10.0.4]: https://github.com/siimon/prom-client/compare/v10.0.3...v10.0.4
-[10.0.3]: https://github.com/siimon/prom-client/compare/v10.0.2...v10.0.3
-[10.0.2]: https://github.com/siimon/prom-client/compare/v10.0.1...v10.0.2
-[10.0.1]: https://github.com/siimon/prom-client/compare/v10.0.0...v10.0.1
-[10.0.0]: https://github.com/siimon/prom-client/compare/v9.1.1...v10.0.0
-[9.1.1]: https://github.com/siimon/prom-client/compare/v9.1.0...v9.1.1
-[9.1.0]: https://github.com/siimon/prom-client/compare/v9.0.0...v9.1.0
-[9.0.0]: https://github.com/siimon/prom-client/commit/1ef835f908e1a5032f228bbc754479fe7ccf5201
+[10.2.2]: https://github.com/prometheus/client_js/compare/v10.2.1...v10.2.2
+[10.2.1]: https://github.com/prometheus/client_js/compare/v10.2.0...v10.2.1
+[10.2.0]: https://github.com/prometheus/client_js/compare/v10.1.1...v10.2.0
+[10.1.1]: https://github.com/prometheus/client_js/compare/v10.1.0...v10.1.1
+[10.1.0]: https://github.com/prometheus/client_js/compare/v10.0.4...v10.1.0
+[10.0.4]: https://github.com/prometheus/client_js/compare/v10.0.3...v10.0.4
+[10.0.3]: https://github.com/prometheus/client_js/compare/v10.0.2...v10.0.3
+[10.0.2]: https://github.com/prometheus/client_js/compare/v10.0.1...v10.0.2
+[10.0.1]: https://github.com/prometheus/client_js/compare/v10.0.0...v10.0.1
+[10.0.0]: https://github.com/prometheus/client_js/compare/v9.1.1...v10.0.0
+[9.1.1]: https://github.com/prometheus/client_js/compare/v9.1.0...v9.1.1
+[9.1.0]: https://github.com/prometheus/client_js/compare/v9.0.0...v9.1.0
+[9.0.0]: https://github.com/prometheus/client_js/commit/1ef835f908e1a5032f228bbc754479fe7ccf5201

@@ -1,5 +1,20 @@
+// Copyright The Prometheus Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 'use strict';
 
+const { Metric } = require('../lib/metric');
 const Registry = require('../index').Registry;
 
 describe.each([
@@ -17,6 +32,44 @@ describe.each([
 	describe('global registry', () => {
 		afterEach(() => {
 			globalRegistry.clear();
+		});
+
+		describe('Metric instantiation', () => {
+			const defaultParams = { name: 'gauge_test', help: 'help' };
+
+			describe('happy path', () => {
+				it('should create a instance', async () => {
+					const instance = new Gauge(defaultParams);
+					const instanceValues = await instance.get();
+					expect(instance).toBeInstanceOf(Metric);
+					expect(instance).toBeInstanceOf(Gauge);
+					expect(instance.labelNames).toStrictEqual([]);
+					expect(instanceValues.name).toStrictEqual(defaultParams.name);
+					expect(instanceValues.help).toStrictEqual(defaultParams.help);
+				});
+			});
+
+			describe('un-happy path', () => {
+				const noValidName = 'no valid name';
+				it('should thrown an error due invalid metric name', () => {
+					expect(
+						() => new Gauge({ ...defaultParams, name: noValidName }),
+					).toThrow(new Error(`Invalid metric name: ${noValidName}`));
+				});
+
+				it('should thrown an error due some invalid label name', () => {
+					const noValidLabelNames = [noValidName, defaultParams.name];
+					expect(
+						() =>
+							new Gauge({
+								...defaultParams,
+								labelNames: noValidLabelNames,
+							}),
+					).toThrow(
+						new Error(`At least one label name is invalid: ${noValidName}`),
+					);
+				});
+			});
 		});
 
 		describe('with parameters as object', () => {
@@ -273,6 +326,7 @@ describe.each([
 	});
 
 	async function expectValue(val) {
-		expect((await instance.get()).values[0].value).toEqual(val);
+		const result = await instance.get();
+		expect(result.values[0].value).toEqual(val);
 	}
 });
