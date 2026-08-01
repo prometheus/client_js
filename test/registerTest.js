@@ -340,6 +340,29 @@ describe('Register', () => {
 			expect(escapedResult).toMatch(/\\"/);
 		});
 
+		it('should stringify and escape non-string label values', async () => {
+			register.registerMetric({
+				async get() {
+					return {
+						name: 'test_metric',
+						type: 'counter',
+						help: 'A test metric',
+						values: [
+							{
+								value: 12,
+								labels: {
+									label: ['say "hi"\nand \\back'],
+								},
+							},
+						],
+					};
+				},
+			});
+
+			const escapedResult = await register.metrics();
+			expect(escapedResult).toContain('label="say \\"hi\\"\\nand \\\\back"');
+		});
+
 		describe('should output metrics as JSON', () => {
 			it('should output metrics as JSON', async () => {
 				register.registerMetric(getMetric());
