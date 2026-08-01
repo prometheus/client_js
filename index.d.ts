@@ -774,6 +774,7 @@ type AvailableDefaultMetrics =
 	| 'processOpenFileDescriptors'
 	| 'processMaxFileDescriptors'
 	| 'eventLoopLag'
+	| 'eventLoopUtilization'
 	| 'processResources'
 	| 'processHandles'
 	| 'processRequests'
