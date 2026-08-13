@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Type definitions for @prometheus/client
+// Type definitions for @prometheus-io/client
 // Definitions by: Simon Nyberg http://twitter.com/siimon_nyberg
 
 export type Charset = 'utf-8';
@@ -206,7 +206,6 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	 */
 	workerMetrics(): Promise<string>;
 
-	addWorker(worker: Worker): void;
 	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
 	 * use a registry/registries other than the default global registry.

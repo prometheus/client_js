@@ -11,6 +11,11 @@ This release marks our first release under the Prometheus umbrella.
 
 ### Breaking
 
+- The package is renamed from `prom-client` to `@prometheus-io/client`. Update your
+  dependencies and any `require()`/`import` statements accordingly.
+- The cluster and worker thread IPC message types are renamed from `prom-client:*`
+  to `@prometheus-io/client:*`. A cluster primary and its workers must therefore run
+  the same major version.
 - Drop support for Node.js versions 16, 18, 20, 21 and 23
 - Metric internal storage ('hashMap') changed to a separate object, LabelMap. If you have
   subclassed the built-in metric types you may need to adjust your code.
@@ -20,6 +25,7 @@ This release marks our first release under the Prometheus umbrella.
   runtime object. Value-style uses such as `MetricType.Counter` (which threw at runtime)
   no longer compile; compare against the string literals instead. Under
   `verbatimModuleSyntax`, import it with `import type`.
+- The cluster primary now reports metrics
 
 ### Changed
 
@@ -41,11 +47,14 @@ This release marks our first release under the Prometheus umbrella.
 - ci: Run benchmarks for pull requests
 - ci: switch out deprecated benchmark-regression library for replacement
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
-- chore: update faceoff to 1.1
+- chore: replace benchmark-regression dependency with faceoff
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 - chore: Add copyright license headers and test
 - Make cluster and worker-thread metric aggregation order deterministic
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
+- chore: Old label processing code marked as deprecated
+- Improve cluster support to allow workers to opt out
+- Abort cluster metric responses during process termination
 - fix: Non-string label values (except `null`/`undefined`) are coerced to strings when a
   combination is first stored, so exposition escapes them and `getMetricsAsJSON()` reports
   them as strings. The store now keeps its own copy of the labels: mutating the caller's

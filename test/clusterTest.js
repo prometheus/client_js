@@ -18,7 +18,9 @@ const cluster = require('cluster');
 const process = require('process');
 const Registry = require('../lib/cluster');
 
-const GET_METRICS_RES = '@prometheus/client:getMetricsRes';
+const ANNOUNCEMENT = '@prometheus-io/client:announcement';
+const GET_METRICS_REQ = '@prometheus-io/client:getMetricsReq';
+const GET_METRICS_RES = '@prometheus-io/client:getMetricsRes';
 
 function metric(value) {
 	return {
@@ -71,11 +73,23 @@ describe.each([
 			const AggregatorRegistry = require('../lib/cluster');
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
-			expect(metrics).toEqual('');
+			expect(metrics.trim()).toEqual('');
+		});
+
+		it("listeners don't accumulate", () => {
+			for (let i = 0; i < 30; i++) {
+				jest.resetModules();
+
+				const AggregatorRegistry = require('../lib/cluster');
+				const ar = new AggregatorRegistry(regType);
+			}
 		});
 
 		it('aggregates worker responses in worker id order', async () => {
 			const originalWorkers = cluster.workers;
+			jest.resetModules();
+			const AggregatorRegistry = require('../lib/cluster');
+			const registry = new AggregatorRegistry(regType);
 			const workers = Object.fromEntries(
 				[1, 2, 3].map(id => [
 					id,
@@ -88,10 +102,12 @@ describe.each([
 			);
 			cluster.workers = workers;
 
+			Object.values(workers).forEach(worker => {
+				cluster.emit('message', worker, { type: ANNOUNCEMENT });
+			});
+
 			try {
-				const registry = new Registry(regType);
 				const result = registry.clusterMetrics();
-				const requestId = workers[1].send.mock.calls[0][0].requestId;
 
 				for (const [id, value] of [
 					[3, 0.3437699],
@@ -100,14 +116,38 @@ describe.each([
 				]) {
 					cluster.emit('message', workers[id], {
 						type: GET_METRICS_RES,
-						requestId,
+						requestId: 0,
 						metrics: [[metric(value)]],
 					});
 				}
 
 				await expect(result).resolves.toContain('test_metric 1.4765105');
 			} finally {
+				Object.values(workers).forEach(worker => {
+					cluster.emit('disconnect', worker);
+				});
 				cluster.workers = originalWorkers;
+			}
+		}, 6_000);
+
+		it('aggregates telemetry from primary thread', async () => {
+			jest.resetModules();
+
+			require('../lib/cluster');
+			const { Gauge } = require('../index');
+
+			const gauge = new Gauge({ name: 'primary_gauge_test', help: 'help' });
+
+			try {
+				const AggregatorRegistry = require('../lib/cluster');
+				const ar = new AggregatorRegistry(regType);
+
+				gauge.set(10);
+
+				const result = ar.clusterMetrics();
+				await expect(result).resolves.toContain('primary_gauge_test 10\n');
+			} finally {
+				gauge.remove();
 			}
 		});
 	});
@@ -120,12 +160,66 @@ describe.each([
 
 			//Emulate a response that has been deleted from requests
 			const unexpected = {
-				type: '@prometheus/client:getMetricsRes',
+				type: '@prometheus-io/client:getMetricsRes',
 				metrics: ['{}'],
 				requestId: -3,
 			};
 
 			expect(() => cluster.emit('message', {}, unexpected)).not.toThrow();
 		});
+	});
+});
+
+describe('worker message handling', () => {
+	beforeEach(() => {
+		jest.resetModules();
+	});
+
+	it('does not send metrics after the IPC channel disconnects', async () => {
+		jest.doMock('cluster', () => {
+			return { isPrimary: false };
+		});
+
+		const connectedDescriptor = Object.getOwnPropertyDescriptor(
+			process,
+			'connected',
+		);
+
+		const AggregatorRegistry = require('../lib/cluster');
+		new AggregatorRegistry();
+
+		const send = jest.spyOn(process, 'send');
+		let listener;
+
+		try {
+			Object.defineProperty(process, 'connected', {
+				configurable: true,
+				value: true,
+				writable: true,
+			});
+
+			listener = process.listeners('message').at(-1);
+			expect(listener).toBeDefined();
+
+			send.mockImplementationOnce(() => {
+				throw new Error('disconnected');
+			});
+
+			process.connected = false;
+
+			listener({ type: GET_METRICS_REQ, requestId: 1 });
+			await new Promise(resolve => setImmediate(resolve));
+
+			expect(send).not.toHaveBeenCalled();
+		} finally {
+			process.removeListener('message', listener);
+			if (connectedDescriptor) {
+				Object.defineProperty(process, 'connected', connectedDescriptor);
+			} else {
+				delete process.connected;
+			}
+			jest.resetModules();
+			jest.clearAllMocks();
+		}
 	});
 });

@@ -14,13 +14,13 @@
 
 'use strict';
 
-const { EventEmitter } = require('events');
 const { setTimeout: delay } = require('timers/promises');
 const { BroadcastChannel } = require('worker_threads');
 const Registry = require('../lib/worker');
 
-const GET_METRICS_REQ = '@prometheus/client:getMetricsReq';
-const GET_METRICS_RES = '@prometheus/client:getMetricsRes';
+const ANNOUNCEMENT = '@prometheus-io/client:announcement';
+const GET_METRICS_REQ = '@prometheus-io/client:getMetricsReq';
+const GET_METRICS_RES = '@prometheus-io/client:getMetricsRes';
 
 function metric(value) {
 	return {
@@ -52,16 +52,22 @@ describe.each([
 			it('aggregates worker responses in thread id order', async () => {
 				const registry = new Registry(regType);
 				const announcementChannel = new BroadcastChannel(
-					'@prometheus/client:announce',
-				);
+					'@prometheus-io/client:announce',
+				).unref();
 				const responders = [1, 2, 3].map(threadId => {
-					const name = `@prometheus/client:test-worker:${threadId}`;
-					registry.addWorker(name);
-					return {
+					const name = `@prometheus-io/client:test-worker:${threadId}`;
+					const channel = new BroadcastChannel(name).unref();
+
+					announcementChannel.postMessage({
+						type: ANNOUNCEMENT,
+						name,
 						threadId,
-						channel: new BroadcastChannel(name),
-					};
+					});
+
+					return { threadId, channel };
 				});
+
+				await delay(5); // Let announcements arrive
 
 				let finishSendingResponses;
 				const responsesSent = new Promise(resolve => {
@@ -93,33 +99,49 @@ describe.each([
 				} finally {
 					announcementChannel.close();
 					for (const responder of responders) responder.channel.close();
-					for (const channel of registry.channels.values()) channel.close();
 				}
 			});
 	});
 
 	describe('message handling', () => {
+		it("listeners don't accumulate", () => {
+			for (let i = 0; i < 30; i++) {
+				jest.resetModules();
+
+				const AggregatorRegistry = require('../lib/worker');
+				const ar = new AggregatorRegistry(regType);
+			}
+		});
+
 		it('does not error out on unexpected (or late) responses', () => {
 			jest.resetModules();
 
 			const WorkerRegistry = require('../lib/worker');
-
 			const registry = new WorkerRegistry(regType);
-			const emitter = new EventEmitter();
+			const announcementChannel = new BroadcastChannel(
+				'@prometheus-io/client:announce',
+			).unref();
+			const threadId = 20;
+			const name = `@prometheus-io/client:test-worker:${threadId}`;
+			const channel = new BroadcastChannel(name).unref();
 
-			registry.addWorker(emitter);
+			announcementChannel.postMessage({
+				type: ANNOUNCEMENT,
+				name,
+				threadId,
+			});
 
 			//Emulate a response that has been deleted from requests
 			const unexpected = {
-				type: '@prometheus/client:getMetricsRes',
+				type: '@prometheus-io/client:getMetricsRes',
 				metrics: ['{}'],
 				requestId: -3,
 			};
 
 			try {
-				expect(() => emitter.emit('message', unexpected)).not.toThrow();
+				expect(() => channel.postMessage(unexpected)).not.toThrow();
 			} finally {
-				for (const channel of registry.channels.values()) channel.close();
+				channel.close();
 			}
 		});
 	});

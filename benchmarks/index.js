@@ -28,10 +28,10 @@ const Benchmark = require('faceoff').default;
  */
 
 const benchmarks = new Benchmark({
-	// TODO: Update this once the module is published to as @prometheus/client.
-	'@prometheus/client@latest': 'prom-client@latest',
-	'@prometheus/client@trunk': 'git@github.com:prometheus/client_js',
-	'@prometheus/client@current': { location: process.cwd() },
+	// TODO: Update this once the module is published to as @prometheus-io/client.
+	latest: 'prom-client@latest',
+	trunk: 'git@github.com:prometheus/client_js',
+	current: { location: process.cwd() },
 });
 
 benchmarks.suite('counter', require('./counter'));

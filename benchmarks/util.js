@@ -19,7 +19,7 @@ const Path = require('path');
 module.exports = setupUtilSuite;
 
 function setupUtilSuite(suite) {
-	const skip = ['@prometheus/client@latest'];
+	const skip = ['latest'];
 
 	suite.add(
 		'hashObject',
@@ -91,7 +91,7 @@ function setupUtilSuite(suite) {
 
 				return new Util.LabelGrouper();
 			},
-			skip: ['@prometheus/client@latest', '@prometheus/client@trunk'],
+			skip: ['latest', 'trunk'],
 		},
 	);
 }
