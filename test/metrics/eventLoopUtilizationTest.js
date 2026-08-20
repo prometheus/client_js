@@ -30,7 +30,7 @@ describe('eventLoopUtilization', () => {
 		{
 			const percentilesCount = 7;
 
-			const eluSummaryMetric = metrics[0];
+			const eluSummaryMetric = metrics[1];
 			expect(eluSummaryMetric.type).toEqual('summary');
 			expect(eluSummaryMetric.name).toEqual(
 				'nodejs_eventloop_utilization_summary',
@@ -57,7 +57,7 @@ describe('eventLoopUtilization', () => {
 		{
 			const bucketsCount = 14;
 
-			const eluHistogramMetric = metrics[1];
+			const eluHistogramMetric = metrics[0];
 			expect(eluHistogramMetric.type).toEqual('histogram');
 			expect(eluHistogramMetric.name).toEqual(
 				'nodejs_eventloop_utilization_histogram',
