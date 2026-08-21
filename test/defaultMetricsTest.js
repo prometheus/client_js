@@ -66,6 +66,34 @@ describe.each([
 		expect(await register.getMetricsAsJSON()).not.toHaveLength(0);
 	});
 
+	it('should register metric groups alphabetically', () => {
+		expect(collectDefaultMetrics.metricsList).toEqual([
+			'processHandles',
+			'processRequests',
+			'processResources',
+			'eventLoopLag',
+			'eventLoopUtilization',
+			'gc',
+			'heapSizeAndUsed',
+			'heapSpacesSizeAndUsed',
+			'version',
+			'processCpuTotal',
+			'processMaxFileDescriptors',
+			'processOpenFileDescriptors',
+			'osMemoryHeap',
+			'processStartTime',
+		]);
+	});
+
+	it('should register metrics alphabetically', async () => {
+		collectDefaultMetrics();
+		const metricNames = (await register.getMetricsAsJSON()).map(
+			metric => metric.name,
+		);
+
+		expect(metricNames).toEqual(metricNames.toSorted());
+	});
+
 	it('should allow blacklisting all metrics', async () => {
 		expect(await register.getMetricsAsJSON()).toHaveLength(0);
 		clearInterval(collectDefaultMetrics());

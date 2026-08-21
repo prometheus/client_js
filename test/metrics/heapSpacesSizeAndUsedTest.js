@@ -83,8 +83,17 @@ describe.each([
 
 		const metrics = await globalRegistry.getMetricsAsJSON();
 
-		expect(metrics[0].name).toEqual('nodejs_heap_space_size_total_bytes');
+		expect(metrics[0].name).toEqual('nodejs_heap_space_size_available_bytes');
 		expect(metrics[0].values).toEqual([
+			{ labels: { space: 'new' }, value: 500 },
+			{ labels: { space: 'old' }, value: 500 },
+			{ labels: { space: 'code' }, value: 500 },
+			{ labels: { space: 'map' }, value: 500 },
+			{ labels: { space: 'large_object' }, value: 500 },
+		]);
+
+		expect(metrics[1].name).toEqual('nodejs_heap_space_size_total_bytes');
+		expect(metrics[1].values).toEqual([
 			{ labels: { space: 'new' }, value: 100 },
 			{ labels: { space: 'old' }, value: 100 },
 			{ labels: { space: 'code' }, value: 100 },
@@ -92,22 +101,13 @@ describe.each([
 			{ labels: { space: 'large_object' }, value: 100 },
 		]);
 
-		expect(metrics[1].name).toEqual('nodejs_heap_space_size_used_bytes');
-		expect(metrics[1].values).toEqual([
+		expect(metrics[2].name).toEqual('nodejs_heap_space_size_used_bytes');
+		expect(metrics[2].values).toEqual([
 			{ labels: { space: 'new' }, value: 50 },
 			{ labels: { space: 'old' }, value: 50 },
 			{ labels: { space: 'code' }, value: 50 },
 			{ labels: { space: 'map' }, value: 50 },
 			{ labels: { space: 'large_object' }, value: 50 },
-		]);
-
-		expect(metrics[2].name).toEqual('nodejs_heap_space_size_available_bytes');
-		expect(metrics[2].values).toEqual([
-			{ labels: { space: 'new' }, value: 500 },
-			{ labels: { space: 'old' }, value: 500 },
-			{ labels: { space: 'code' }, value: 500 },
-			{ labels: { space: 'map' }, value: 500 },
-			{ labels: { space: 'large_object' }, value: 500 },
 		]);
 	});
 });

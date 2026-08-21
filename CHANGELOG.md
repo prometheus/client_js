@@ -30,6 +30,7 @@ dependencies and any `require()`/`import` statements accordingly.
 
 ### Changed
 
+- Register default metrics alphabetically
 - Allow `Pushgateway` to accept a custom registry as the second constructor argument
 - Add `Registry#getMetricsAsString()` to the TypeScript definitions
 - Improve types for no labels
