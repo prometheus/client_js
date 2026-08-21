@@ -115,6 +115,14 @@ describe.each([
 		});
 	});
 
+	it('should register default metric modules in alphabetical order of their metric names', () => {
+		const moduleKeys = collectDefaultMetrics.metricsList;
+		const firstNames = moduleKeys.map(
+			key => require(`../lib/metrics/${key}`).metricNames[0],
+		);
+		expect(firstNames).toEqual([...firstNames].sort());
+	});
+
 	describe('custom registry', () => {
 		it('should allow to register metrics to custom registry', async () => {
 			const registry = new Registry(regType);
