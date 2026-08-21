@@ -39,8 +39,13 @@ describe.each([
 		};
 
 		heapSizeAndUsed();
-		// Note: these three gauges' values are set by the _total gauge's
-		// "collect" function.
+		// Note: these three gauges' values are set by the external memory
+		// gauge's "collect" function, so it must be read first.
+
+		const externalGauge = globalRegistry.getSingleMetric(
+			'nodejs_external_memory_bytes',
+		);
+		expect((await externalGauge.get()).values[0].value).toEqual(100);
 
 		const totalGauge = globalRegistry.getSingleMetric(
 			'nodejs_heap_size_total_bytes',
@@ -51,10 +56,5 @@ describe.each([
 			'nodejs_heap_size_used_bytes',
 		);
 		expect((await usedGauge.get()).values[0].value).toEqual(500);
-
-		const externalGauge = globalRegistry.getSingleMetric(
-			'nodejs_external_memory_bytes',
-		);
-		expect((await externalGauge.get()).values[0].value).toEqual(100);
 	});
 });
