@@ -57,6 +57,7 @@ This release marks our first release under the Prometheus umbrella.
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
 - chore: Old label processing code marked as deprecated
 - perf: Stop rebuilding the label array for every rendered series, and skip shared label handling entirely for values that do not set it; 9-22% faster `metrics()` in the registry benchmarks
+- perf: Histogram rendering builds its export list straight from the store iterator instead of an intermediate array. Faster at high series counts on Node 24 and 26, can be slightly slower on Node 22
 
 ### Added
 
