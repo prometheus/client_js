@@ -17,10 +17,13 @@
 const cluster = require('cluster');
 const process = require('process');
 const Registry = require('../lib/cluster');
+const { setTimeout: delay } = require('timers/promises');
 
+const ACK = '@prometheus-io/client:ack';
 const ANNOUNCEMENT = '@prometheus-io/client:announcement';
 const GET_METRICS_REQ = '@prometheus-io/client:getMetricsReq';
 const GET_METRICS_RES = '@prometheus-io/client:getMetricsRes';
+const GOODBYE = '@prometheus-io/client:goodbye';
 
 function metric(value) {
 	return {
@@ -69,8 +72,29 @@ describe.each([
 	});
 
 	describe('aggregatorRegistry.clusterMetrics()', () => {
+		let AggregatorRegistry;
+		let listener;
+		let discovery;
+
+		beforeEach(() => {
+			jest.resetModules();
+			AggregatorRegistry = require('../lib/cluster');
+
+			discovery = new Promise(resolve => {
+				listener = message => {
+					resolve(message);
+				};
+
+				cluster.on('message', listener);
+			});
+		});
+
+		afterEach(() => {
+			cluster.off('message', listener);
+			jest.restoreAllMocks();
+		});
+
 		it('works properly if there are no cluster workers', async () => {
-			const AggregatorRegistry = require('../lib/cluster');
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
 			expect(metrics.trim()).toEqual('');
@@ -87,8 +111,6 @@ describe.each([
 
 		it('aggregates worker responses in worker id order', async () => {
 			const originalWorkers = cluster.workers;
-			jest.resetModules();
-			const AggregatorRegistry = require('../lib/cluster');
 			const registry = new AggregatorRegistry(regType);
 			const workers = Object.fromEntries(
 				[1, 2, 3].map(id => [
@@ -107,8 +129,9 @@ describe.each([
 			});
 
 			try {
-				const result = registry.clusterMetrics();
+				await discovery;
 
+				const result = registry.clusterMetrics();
 				for (const [id, value] of [
 					[3, 0.3437699],
 					[1, 0.5848208],
@@ -128,11 +151,9 @@ describe.each([
 				});
 				cluster.workers = originalWorkers;
 			}
-		}, 6_000);
+		});
 
 		it('aggregates telemetry from primary thread', async () => {
-			jest.resetModules();
-
 			require('../lib/cluster');
 			const { Gauge } = require('../index');
 
@@ -148,6 +169,168 @@ describe.each([
 				await expect(result).resolves.toContain('primary_gauge_test 10\n');
 			} finally {
 				gauge.remove();
+			}
+		});
+
+		it('accumulate stats from terminated workers', async () => {
+			const originalWorkers = cluster.workers;
+			const registry = new AggregatorRegistry(regType);
+			const worker = {
+				id: 37,
+				isConnected: () => true,
+				send: jest.fn(),
+			};
+
+			cluster.workers = [worker];
+
+			const metrics = new Promise(resolve => {
+				worker.send.mockImplementationOnce(message => {
+					resolve(message.metrics);
+				});
+			});
+
+			try {
+				cluster.emit('message', worker, { type: ANNOUNCEMENT });
+
+				await discovery;
+
+				cluster.emit('message', worker, {
+					type: GOODBYE,
+					requestId: 0,
+					metrics: [[metric(0.654321)]],
+				});
+
+				await metrics;
+
+				const result = registry.clusterMetrics();
+				await expect(result).resolves.toContain('test_metric 0.654321');
+			} finally {
+				cluster.workers = originalWorkers;
+			}
+		});
+	});
+
+	describe('shutdown()', () => {
+		let AggregatorRegistry;
+		let listener;
+		let discovery;
+
+		beforeEach(() => {
+			jest.resetModules();
+			AggregatorRegistry = require('../lib/cluster');
+
+			discovery = new Promise(resolve => {
+				listener = message => {
+					resolve(message);
+				};
+
+				cluster.on('message', listener);
+			});
+		});
+
+		afterEach(() => {
+			cluster.off('message', listener);
+			jest.restoreAllMocks();
+		});
+
+		it('returns immediately on no outstanding requests', async () => {
+			const ar = new AggregatorRegistry(regType);
+
+			await expect(ar.shutdown()).resolves.not.toThrow();
+		});
+
+		it('waits for pending requests', async () => {
+			const originalWorkers = cluster.workers;
+			jest.resetModules();
+			const AggregatorRegistry = require('../lib/cluster');
+			const registry = new AggregatorRegistry(regType);
+			const worker = {
+				id: 53,
+				isConnected: () => true,
+				send: jest.fn(),
+			};
+
+			cluster.workers = [worker];
+
+			cluster.emit('message', worker, { type: ANNOUNCEMENT });
+
+			try {
+				await discovery;
+
+				const results = [];
+				const promise = registry.clusterMetrics().then(() => results.push(1));
+				const shutdown = registry.shutdown().then(() => results.push(2));
+
+				cluster.emit('message', worker, {
+					type: GET_METRICS_RES,
+					requestId: 0,
+					metrics: [[metric(7)]],
+				});
+
+				await Promise.all([promise, shutdown]);
+
+				expect(results).toEqual([1, 2]);
+			} finally {
+				cluster.emit('disconnect', worker);
+				cluster.workers = originalWorkers;
+			}
+		});
+
+		it('sends data back to main', async () => {
+			jest.resetModules();
+
+			// Fake a worker thread
+			jest.doMock('cluster', () => {
+				return { isPrimary: false };
+			});
+
+			const connectedDescriptor = Object.getOwnPropertyDescriptor(
+				process,
+				'connected',
+			);
+
+			process.connected = true;
+
+			const send = jest.spyOn(process, 'send');
+			const AggregatorRegistry = require('../lib/cluster');
+			const workerRegistry = new AggregatorRegistry(regType);
+
+			const { Gauge } = require('../index');
+			const gauge = new Gauge({ name: 'primary_gauge_test', help: 'test' });
+
+			gauge.set(0.8675309);
+
+			try {
+				const metrics = new Promise(resolve => {
+					send.mockImplementationOnce(message => {
+						process.emit('message', { type: ACK, requestId: 0 });
+						resolve(message.metrics);
+					});
+				});
+
+				await workerRegistry.shutdown();
+				const expected = {
+					aggregator: 'sum',
+					help: 'test',
+					name: 'primary_gauge_test',
+					type: 'gauge',
+					values: [
+						{
+							labels: {},
+							value: 0.8675309,
+						},
+					],
+				};
+
+				await expect(metrics).resolves.toEqual([[expected]]);
+			} finally {
+				jest.dontMock('cluster');
+				gauge.remove();
+				if (connectedDescriptor) {
+					Object.defineProperty(process, 'connected', connectedDescriptor);
+				} else {
+					delete process.connected;
+				}
 			}
 		});
 	});
@@ -185,10 +368,13 @@ describe('worker message handling', () => {
 			'connected',
 		);
 
+		const send = jest.spyOn(process, 'send');
+
 		const AggregatorRegistry = require('../lib/cluster');
 		new AggregatorRegistry();
 
-		const send = jest.spyOn(process, 'send');
+		send.mockReset();
+
 		let listener;
 
 		try {
@@ -208,18 +394,19 @@ describe('worker message handling', () => {
 			process.connected = false;
 
 			listener({ type: GET_METRICS_REQ, requestId: 1 });
-			await new Promise(resolve => setImmediate(resolve));
 
-			expect(send).not.toHaveBeenCalled();
+			await delay(0);
+
+			expect(send).toHaveBeenCalledTimes(0); // Announcement
 		} finally {
+			jest.resetModules();
+			jest.dontMock('cluster');
 			process.removeListener('message', listener);
 			if (connectedDescriptor) {
 				Object.defineProperty(process, 'connected', connectedDescriptor);
 			} else {
 				delete process.connected;
 			}
-			jest.resetModules();
-			jest.clearAllMocks();
 		}
 	});
 });

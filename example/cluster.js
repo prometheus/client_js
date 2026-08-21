@@ -30,6 +30,34 @@ if (cluster.isPrimary) {
 		cluster.fork({ ...process.env, PORT: 3000 + i });
 	}
 
+	async function gracefulShutdown(worker) {
+		return new Promise((resolve, reject) => {
+			worker.send('shutdown');
+			worker.once('exit', event => {
+				resolve(event);
+			});
+			worker.once('error', event => {
+				reject(event);
+			});
+		});
+	}
+
+	async function shutdown() {
+		console.log('Shutting down...');
+
+		await Promise.all(Object.values(cluster.workers).map(gracefulShutdown));
+
+		console.log('Workers terminated');
+	}
+
+	['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGTERM'].forEach(sig => {
+		process.on(sig, async () => {
+			await shutdown(sig);
+			// eslint-disable-next-line n/no-process-exit
+			process.exit(0);
+		});
+	});
+
 	metricsServer.get('/cluster_metrics', async (req, res) => {
 		try {
 			const metrics = await clusterRegistry.clusterMetrics();
@@ -48,5 +76,20 @@ if (cluster.isPrimary) {
 		);
 	});
 } else {
+	process.on('message', async message => {
+		if (message === 'shutdown') {
+			console.log('worker shutting down');
+			try {
+				await clusterRegistry.shutdown();
+				// eslint-disable-next-line n/no-process-exit
+				process.exit(0);
+			} catch (error) {
+				console.error(error);
+				// eslint-disable-next-line n/no-process-exit
+				process.exit(1);
+			}
+		}
+	});
+
 	require('./server.js');
 }

@@ -15,7 +15,13 @@
 'use strict';
 
 const Path = require('path');
-const { Worker, isMainThread, workerData } = require('node:worker_threads');
+const {
+	Worker,
+	isMainThread,
+	parentPort,
+	workerData,
+	threadId,
+} = require('node:worker_threads');
 const express = require('express');
 const WorkerRegistry = require('../').WorkerRegistry;
 
@@ -28,17 +34,63 @@ const workerRegistry = new WorkerRegistry(
 
 if (isMainThread) {
 	// By default the main thread is the collector. Demonstrating off-loading.
-	new Worker(Path.join(__filename), {
+	const collectorWorker = new Worker(Path.join(__filename), {
 		env: { ...process.env, PORT: 3333 },
 		workerData: {
 			'@prometheus-io/client': { collector: true },
 		},
 	});
 
+	const workers = [];
+
 	for (let i = 1; i <= 10; i++) {
 		const opts = { env: { ...process.env, PORT: 3000 + i } };
-		new Worker(Path.join(__filename), opts);
+		workers.push(new Worker(Path.join(__filename), opts));
 	}
+
+	async function gracefulShutdown(worker) {
+		return new Promise((resolve, reject) => {
+			worker.postMessage('shutdown');
+			worker.once('exit', event => {
+				resolve(event);
+			});
+			worker.once('error', event => {
+				reject(event);
+			});
+		});
+	}
+
+	async function shutdown() {
+		console.log('Shutting down...');
+
+		await Promise.all(workers.map(gracefulShutdown));
+
+		await gracefulShutdown(collectorWorker);
+		console.log('Workers terminated');
+	}
+
+	['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGTERM'].forEach(sig => {
+		process.on(sig, async () => {
+			await shutdown(sig);
+			// eslint-disable-next-line n/no-process-exit
+			process.exit(0);
+		});
+	});
+} else {
+	parentPort.on('message', async message => {
+		if (message === 'shutdown') {
+			console.log('worker shutting down', threadId);
+			try {
+				await workerRegistry.shutdown();
+				// eslint-disable-next-line n/no-process-exit
+				process.exit(0);
+			} catch (error) {
+				console.error(error);
+				// eslint-disable-next-line n/no-process-exit
+				process.exit(1);
+			}
+		}
+	});
 }
 
 if (collector) {

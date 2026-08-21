@@ -18,7 +18,10 @@ See example folder for a sample usage. The library does not bundle any web
 framework. To expose the metrics, respond to Prometheus's scrape requests with
 the result of `await registry.metrics()`.
 
-### Usage with Node.js's `cluster` module
+### Usage with Node.js's `cluster` or Worker module
+
+Note: the Prometheus client now also supports worker threads, with much the same
+constraints as cluster workers. See `example/worker.js`.
 
 Node.js's `cluster` module spawns multiple processes and hands off socket
 connections to those workers. Returning metrics from a worker's local registry
@@ -41,12 +44,22 @@ for an example.)
 If you need to expose metrics about an individual worker, you can include a
 value that is unique to the worker (such as the worker ID or process ID) in a
 label. (See `example/server.js` for an example using
-`worker_${cluster.worker.id}` as a label value.)
+`worker_${cluster.worker.id}` as a label value.) But this will result in a high
+cardinality situation, which the Aggregator is generally meant to avoid.
 
 Metrics are aggregated from the global registry by default. To use a different
 registry, call
 `client.AggregatorRegistry.setRegistries(registryOrArrayOfRegistries)` from the
 worker processes.
+
+#### Process Lifecycle
+
+The `shutdown()` method is provided to help cleanly shut down the application while
+metrics calls are pending. In the future this will also help with workers that are
+short-lived or need to be restarted.
+
+Please also see [The Workers Readme](Workers.md) for special notes on handling workers
+that do not survive for the entire run time of the application.
 
 ## API
 
@@ -636,3 +649,33 @@ To avoid native dependencies in this module, GC statistics for bytes reclaimed
 in each GC sweep are kept in a separate module:
 https://github.com/SimenB/node-prometheus-gc-stats. (Note that that metric may
 no longer be accurate now that v8 uses parallel garbage collection.)
+
+## Notes
+
+### Hot Reloading
+
+While it is unusual for NodeJS applications to reload modules at runtime, some more esoteric
+codebases may still do so. You should be aware that there is quite a bit of undefined behavior
+potential when combining this strategy with @prometheus-io/client_js, and one should proceed with
+caution if they do so.
+
+@prometheus-io/client_js has some primitive support for resetting itself between calls, but these
+features were intended almost exclusively for compatibility with test harnesses in order to
+support unit and integration tests. It has not been hardened to support workloads where a live
+application forcibly reloads modules to for instance pick up changes from the filesystem without
+restarting the server.
+
+Using this in production will result in data loss. Lost telemetry can trigger anything from alert to
+incorrect triage of production issues when 'sum' metrics show glitches or sawtooth patterns in their
+charts.
+
+While reloading your own code will often not also reload your dependencies, some extra care may be
+needed to avoid the common error message:
+
+> "A metric with the name #### has already been registered."
+
+Because while your code may have forgotten about that Gauge you already initialized, Prometheus
+remembers. One option is to utilize `Registry.getSingleMetric(name)` to do collision checks on
+initialization. Note that you will not be able to handle live code changes where the labels
+associated with a Metric without first removing the metric, which of course will also result in
+artifacts in your prometheus mackend due to existing counts and histograms being zeroed out.

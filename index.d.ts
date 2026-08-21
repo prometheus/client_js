@@ -70,6 +70,14 @@ export class Registry<
 	getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
 
 	/**
+	 * Get all metrics as objects
+	 * @param aggregator Filter by aggregator type
+	 */
+	getMetricsAsJSON(
+		aggregator: string,
+	): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
+
+	/**
 	 * Get string representation for a metric
 	 * @param metric Metric to convert to a string
 	 */
@@ -79,6 +87,12 @@ export class Registry<
 	 * Get all metrics as objects
 	 */
 	getMetricsAsArray(): MetricObject[];
+
+	/**
+	 * Get all metrics as objects
+	 * @param aggregator Filter by aggregator type
+	 */
+	getMetricsAsArray(aggregator: string): MetricObject[];
 
 	/**
 	 * Remove a single metric
@@ -207,6 +221,17 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	workerMetrics(): Promise<string>;
 
 	/**
+	 * Orderly shutdown of the registry.
+	 *
+	 * This is meant to be called prior to`process.exit()` to facilitate accurate metrics.
+	 *
+	 * If this instance is the primary, then it will wait for any in-flight
+	 * metrics to finish collecting or time out prior to returning.
+	 * @returns {Promise<void>}
+	 */
+	shutdown(): Promise<void>;
+
+	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
 	 * use a registry/registries other than the default global registry.
 	 * @param {Array<Registry>|Registry} regs Registry or registries to be
@@ -235,6 +260,17 @@ export class AggregatorRegistry<
 	 * metrics.
 	 */
 	clusterMetrics(): Promise<string>;
+
+	/**
+	 * Orderly shutdown of the registry.
+	 *
+	 * This is meant to be called prior to`process.exit()` to facilitate accurate metrics.
+	 *
+	 * If this instance is the primary, then it will wait for any in-flight
+	 * metrics to finish collecting or time out prior to returning.
+	 * @returns {Promise<void>}
+	 */
+	shutdown(): Promise<void>;
 
 	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to

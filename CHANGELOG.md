@@ -45,16 +45,18 @@ This release marks our first release under the Prometheus umbrella.
 - perf: Use faster `process.memoryUsage.rss()` API for resident memory collection (30-40% more ops/sec)
 - fix: Browser compatibility for Gauge.startTimer()
 - ci: Run benchmarks for pull requests
-- ci: switch out deprecated benchmark-regression library for replacement
 - AggregatorRegistry renamed to ClusterRegistry, old name deprecated
 - chore: replace benchmark-regression dependency with faceoff
 - perf: Stat aggregation uses similar strategy to collection. 60% faster aggregation
 - chore: Add copyright license headers and test
-- Make cluster and worker-thread metric aggregation order deterministic
+- Support for worker threads added
+- Cluster and Worker improvements:
+  - Workers now opt in to collection
+  - Make cluster and worker-thread metric aggregation order deterministic
+  - Graceful shutdown support, and data retention past worker termination
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
 - chore: Old label processing code marked as deprecated
-- Improve cluster support to allow workers to opt out
-- Abort cluster metric responses during process termination
+- perf: Stop rebuilding the label array for every rendered series, and skip shared label handling entirely for values that do not set it; 9-22% faster `metrics()` in the registry benchmarks
 - fix: Non-string label values (except `null`/`undefined`) are coerced to strings when a
   combination is first stored, so exposition escapes them and `getMetricsAsJSON()` reports
   them as strings. The store now keeps its own copy of the labels: mutating the caller's

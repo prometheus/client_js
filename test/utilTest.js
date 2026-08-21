@@ -43,6 +43,25 @@ describe('utils', () => {
 		});
 	});
 
+	describe('waitFor', () => {
+		const waitFor = require('../lib/util').waitFor;
+
+		it('times out if the promise exceeds the limit', async () => {
+			await expect(waitFor(new Promise(() => {}), 1)).rejects.toThrow(
+				'Timeout',
+			);
+		});
+
+		it('Resolves on a success', async () => {
+			await expect(waitFor(Promise.resolve('foo'))).resolves.toEqual('foo');
+		});
+
+		it('Rejects on a promise rejection', async () => {
+			const promise = waitFor(Promise.reject(new Error('nope')));
+			await expect(promise).rejects.toThrow('nope');
+		});
+	});
+
 	describe('getLabels', () => {
 		const getLabels = require('../lib/util').getLabels;
 
