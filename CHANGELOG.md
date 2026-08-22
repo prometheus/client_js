@@ -58,6 +58,11 @@ dependencies and any `require()`/`import` statements accordingly.
 - Export `MetricObject`, `MetricObjectWithValues`, `MetricValue` and `MetricValueWithName` from the TypeScript definitions
 - chore: Old label processing code marked as deprecated
 - perf: Stop rebuilding the label array for every rendered series, and skip shared label handling entirely for values that do not set it; 9-22% faster `metrics()` in the registry benchmarks
+- fix: Non-string label values (except `null`/`undefined`) are coerced to strings when a
+  combination is first stored, so exposition escapes them and `getMetricsAsJSON()` reports
+  them as strings. The store now keeps its own copy of the labels: mutating the caller's
+  object after recording no longer changes the stored series
+- fix: Label-less summaries report `labels: {}` in `getMetricsAsJSON()`, like other metrics
 
 ### Added
 
