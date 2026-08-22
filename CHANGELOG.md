@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Breaking
+
+- Gauges no longer initialize to zero, even if they have no labels
+- `reset()` changes that may require modifications to custom Metrics:
+  - it is no longer called in the middle of the constructor
+  - it now defaults to clearing the labelMap
+
+### Changed
+
+### Added
+
 ## [0.16.0] - 2026-08-??
 
 This release marks our first release as a Prometheus subproject.

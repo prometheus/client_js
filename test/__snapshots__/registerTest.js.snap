@@ -32,7 +32,6 @@ exports[`Register with OpenMetrics type should output all initialized metrics at
 counter_total 0
 # HELP gauge help
 # TYPE gauge gauge
-gauge 0
 # HELP histogram help
 # TYPE histogram histogram
 histogram_bucket{le="0.005"} 0
@@ -86,7 +85,6 @@ counter 0
 
 # HELP gauge help
 # TYPE gauge gauge
-gauge 0
 
 # HELP histogram help
 # TYPE histogram histogram

@@ -138,12 +138,13 @@ describe.each([
 				expect(fn).toThrowErrorMatchingSnapshot();
 			});
 
-			it('should init to 0', async () => {
+			it('should not init to 0', async () => {
 				instance = new Gauge({
 					name: 'init_gauge',
 					help: 'somehelp',
 				});
-				await expectValue(0);
+
+				await expect(instance.get()).resolves.toBeEmpty;
 			});
 
 			describe('with labels', () => {
@@ -287,6 +288,7 @@ describe.each([
 		afterEach(() => {
 			globalRegistry.clear();
 		});
+
 		it('should reset labelless gauge', async () => {
 			const instance = new Gauge({
 				name: 'test_metric',
@@ -297,7 +299,7 @@ describe.each([
 			expect((await instance.get()).values[0].value).toEqual(12);
 
 			instance.reset();
-			expect((await instance.get()).values[0].value).toEqual(0);
+			expect(await instance.get()).toBeEmpty;
 
 			instance.set(10);
 			expect((await instance.get()).values[0].value).toEqual(10);
