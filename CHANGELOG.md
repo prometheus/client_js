@@ -12,6 +12,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Organized default metrics
+- perf: Improve the memory usage of histograms by delaying allocation of bucket data
 
 ### Added
 
