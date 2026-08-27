@@ -29,8 +29,7 @@ export type PrometheusContentType =
 	`${PrometheusMIME}; version=${PrometheusMetricsVersion}; charset=${Charset}`;
 
 export type RegistryContentType =
-	| PrometheusContentType
-	| OpenMetricsContentType;
+	PrometheusContentType | OpenMetricsContentType;
 
 /**
  * Container for all registered metrics
@@ -295,10 +294,7 @@ type NoLabelNameType = never;
  * General metric type
  */
 export type Metric<T extends string = NoLabelNameType> =
-	| Counter<T>
-	| Gauge<T>
-	| Summary<T>
-	| Histogram<T>;
+	Counter<T> | Gauge<T> | Summary<T> | Histogram<T>;
 
 /**
  * Aggregation methods, used for aggregating metrics in a Node.js cluster.
@@ -345,8 +341,7 @@ interface MetricConfiguration<T extends string> {
 	help: string;
 	labelNames?: T[] | readonly T[];
 	registers?: (
-		| Registry<PrometheusContentType>
-		| Registry<OpenMetricsContentType>
+		Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
 	)[];
 	aggregator?: Aggregator;
 	collect?: CollectFunction<any>;
