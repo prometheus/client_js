@@ -1,6 +1,6 @@
 {
 	"name": "@prometheus-io/client",
-	"version": "0.16.0",
+	"version": "0.16.1",
 	"description": "Client for prometheus",
 	"main": "index.js",
 	"files": [
