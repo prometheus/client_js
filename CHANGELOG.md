@@ -15,6 +15,12 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- `Registry.setContentType()` (and the `Registry` constructor) accept a
+  `counterWithoutTotalSuffix: 'unknown'` option. When set, OpenMetrics output
+  keeps the original name and reports type `unknown` for Counters that don't
+  already end in `_total`, instead of the default behavior of renaming them
+  with the suffix appended.
+
 ## [0.16.0] - 2026-08-24
 
 This release marks our first release as a Prometheus subproject.

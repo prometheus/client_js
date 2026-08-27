@@ -423,6 +423,25 @@ properties on the `Registry` object.
 The `contentType` constant exposed by the module returns the default content
 type when creating a new registry, currently defaults to Prometheus type.
 
+OpenMetrics requires Counter samples to carry a `_total` suffix, so switching
+a registry to `OPENMETRICS_CONTENT_TYPE` renames any Counter whose name
+doesn't already end in `_total` on the wire (e.g. `foo` becomes `foo_total`).
+If that renaming is undesirable, pass `counterWithoutTotalSuffix: 'unknown'`
+as a second argument to keep the original name and expose the metric with
+type `unknown` instead:
+
+```js
+Prometheus.register.setContentType(
+  Prometheus.Registry.OPENMETRICS_CONTENT_TYPE,
+  {
+    counterWithoutTotalSuffix: 'unknown',
+  },
+);
+```
+
+This only affects Counters that lack a `_total` suffix; the default is
+`'append'`, which preserves the renaming behavior described above.
+
 ### Multiple registries
 
 By default, metrics are automatically registered to the global registry (located
