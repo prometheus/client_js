@@ -33,6 +33,30 @@ describe('Register', () => {
 		}).toThrow(expectedContentTypeErrStr);
 	});
 
+	it.each([
+		[
+			'setContentType',
+			reg =>
+				reg.setContentType(Registry.OPENMETRICS_CONTENT_TYPE, {
+					counterWithoutTotalSuffix: 'bogus',
+				}),
+		],
+		[
+			'the constructor',
+			() =>
+				new Registry(Registry.OPENMETRICS_CONTENT_TYPE, {
+					counterWithoutTotalSuffix: 'bogus',
+				}),
+		],
+	])(
+		'should throw if given an unsupported counterWithoutTotalSuffix via %s',
+		(tag, act) => {
+			expect(() => act(register)).toThrow(
+				'counterWithoutTotalSuffix must be one of append, unknown, got bogus',
+			);
+		},
+	);
+
 	describe.each([
 		['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 		['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
@@ -79,6 +103,37 @@ describe('Register', () => {
 				}
 			});
 		});
+
+		if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
+			describe('with counterWithoutTotalSuffix set to unknown', () => {
+				beforeEach(() => {
+					register.setContentType(regType, {
+						counterWithoutTotalSuffix: 'unknown',
+					});
+				});
+
+				it.each([
+					[
+						'test_metric',
+						'# TYPE test_metric unknown',
+						'test_metric{label="hello",code="303"} 12',
+					],
+					[
+						'test_metric_total',
+						'# TYPE test_metric counter',
+						'test_metric_total{label="hello",code="303"} 12',
+					],
+				])(
+					'keeps a counter named %s stable on the wire',
+					async (name, expectedType, expectedSample) => {
+						register.registerMetric(getMetric(name));
+						const output = (await register.metrics()).split('\n');
+						expect(output[1]).toEqual(expectedType);
+						expect(output[2]).toEqual(expectedSample);
+					},
+				);
+			});
+		}
 
 		it('should throw on more than one metric', () => {
 			register.registerMetric(getMetric());
