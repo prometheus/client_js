@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this
 project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.16.1] - 2026-08-27
+
+### Changed
+
+- fix: Correct content type exported for cluster and worker mode.
+
 ## [0.16.0] - 2026-08-24
 
 This release marks our first release as a Prometheus subproject.

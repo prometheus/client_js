@@ -97,7 +97,23 @@ describe.each([
 		it('works properly if there are no cluster workers', async () => {
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
-			expect(metrics.trim()).toEqual('');
+
+			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
+				expect(metrics).toContain('# EOF\n');
+			} else {
+				expect(metrics.trim()).toEqual('');
+			}
+		});
+
+		it('formats in the correct content type', async () => {
+			const ar = new AggregatorRegistry(regType);
+			const metrics = await ar.clusterMetrics();
+
+			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
+				expect(metrics).toContain('# EOF\n');
+			} else {
+				expect(metrics.trim()).toEqual('');
+			}
 		});
 
 		it("listeners don't accumulate", () => {

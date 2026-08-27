@@ -34,6 +34,16 @@ function metric(value) {
 	};
 }
 
+function counter(value) {
+	return {
+		help: 'test metric two',
+		name: 'test_metric_two_counter',
+		type: 'counter',
+		values: [{ labels: {}, value }],
+		aggregator: 'sum',
+	};
+}
+
 describe.each([
 	['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 	['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
@@ -43,29 +53,74 @@ describe.each([
 	});
 
 	describe('WorkerRegistry.workerMetrics()', () => {
-		it('works properly if there are no workers', async () => {
-			const WorkerRegistry = require('../lib/worker');
-			const registry = new WorkerRegistry(regType);
-			const metrics = await registry.workerMetrics();
-			expect(metrics).toEqual('');
-		});
+		let AggregatorRegistry;
+		let announcementChannel;
+		let registry;
+		let discovery;
 
-		it('aggregates worker responses in thread id order', async () => {
+		beforeEach(async () => {
 			jest.resetModules();
-			const AggregatorRegistry = require('../lib/worker');
-			const registry = new AggregatorRegistry(regType);
-			const announcementChannel = new BroadcastChannel(
+			AggregatorRegistry = require('../lib/worker');
+			registry = new AggregatorRegistry(regType);
+			announcementChannel = new BroadcastChannel(
 				'@prometheus-io/client:announce',
 			).unref();
 
-			const discovery = new Promise(resolve => {
+			discovery = new Promise(resolve => {
 				announcementChannel.addEventListener('message', async event => {
 					if (event.data.type === ANNOUNCEMENT && !event.data.primary) {
 						resolve(event);
 					}
 				});
 			});
+		});
 
+		afterEach(async () => {
+			announcementChannel.close();
+		});
+
+		it('works properly if there are no workers', async () => {
+			const metrics = await registry.workerMetrics();
+			expect(metrics).toEqual('');
+		});
+
+		it('formats in the correct content type', async () => {
+			const threadId = 211;
+			const name = `@prometheus-io/client:worker:${threadId}`;
+			const channel = new BroadcastChannel(name).unref();
+
+			announcementChannel.postMessage({
+				type: ANNOUNCEMENT,
+				name,
+				threadId,
+			});
+
+			await discovery; // Let announcements arrive
+
+			announcementChannel.addEventListener('message', async event => {
+				if (event.data.type !== GET_METRICS_REQ) return;
+
+				channel.postMessage({
+					type: GET_METRICS_RES,
+					requestId: event.data.requestId,
+					threadId,
+					metrics: [[counter(1.2345)]],
+				});
+			});
+
+			try {
+				const result = await registry.workerMetrics();
+				if (regType === Registry.PROMETHEUS_CONTENT_TYPE) {
+					expect(result).toContain('test_metric_two_counter 1.2345');
+				} else {
+					expect(result).toContain('test_metric_two_counter_total 1.2345');
+				}
+			} finally {
+				channel.close();
+			}
+		});
+
+		it('aggregates worker responses in thread id order', async () => {
 			const responders = [1, 2, 3].map(threadId => {
 				const name = `@prometheus-io/client:worker:${threadId}`;
 				const channel = new BroadcastChannel(name).unref();
@@ -109,7 +164,6 @@ describe.each([
 				await responsesSent;
 				expect(result).toContain('test_metric 1.4765105');
 			} finally {
-				announcementChannel.close();
 				for (const responder of responders) responder.channel.close();
 			}
 		});
