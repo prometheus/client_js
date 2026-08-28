@@ -66,6 +66,7 @@ describe('Exemplars', () => {
 			it('should preserve a zero counter value in an exemplar', async () => {
 				const registry = new Registry();
 				registry.setContentType(Registry.OPENMETRICS_CONTENT_TYPE);
+
 				const counterInstance = new Counter({
 					name: 'counter_zero_exemplar_test',
 					help: 'help',
@@ -79,6 +80,24 @@ describe('Exemplars', () => {
 						traceId: 'trace_id_test',
 						spanId: 'span_id_test',
 					},
+				});
+
+				const vals = await counterInstance.get();
+				expect(vals.values[0].value).toEqual(0);
+				expect(vals.values[0].exemplar.value).toEqual(0);
+			});
+
+			it('should keep zero as the counter exemplar value', async () => {
+				const counterInstance = new Counter({
+					name: 'counter_zero_exemplar_test',
+					help: 'help',
+					enableExemplars: true,
+					registers: [],
+				});
+
+				counterInstance.inc({
+					value: 0,
+					exemplarLabels: { traceId: 'trace_id_test', spanId: 'span_id_test' },
 				});
 
 				const vals = await counterInstance.get();
