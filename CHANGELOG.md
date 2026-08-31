@@ -78,6 +78,7 @@ dependencies and any `require()`/`import` statements accordingly.
 
 ### Added
 
+- Add option to exclude selected default metrics from being collected
 - Add `nodejs_eventloop_utilization_summary` and `nodejs_eventloop_utilization_histogram` to the default metrics
 - Add debug logging for metrics collection failures.
 - Node 26 added to the test matrix
