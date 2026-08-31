@@ -21,6 +21,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Additional TS typedefs for Metrics
+
 ## [0.16.0] - 2026-08-24
 
 This release marks our first release as a Prometheus subproject.
