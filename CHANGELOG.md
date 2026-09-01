@@ -18,6 +18,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - perf: Remove truthy conditionals from default metric collectors
 - fix: Preserve zero-valued Counter exemplars
 - perf: Remove object and array fallback truthiness from core metric paths
+- chore: update benchmark baseline to v0.16.1
 
 ### Added
 

@@ -28,8 +28,7 @@ const Benchmark = require('faceoff').default;
  */
 
 const benchmarks = new Benchmark({
-	// TODO: Update this once the module is published to as @prometheus-io/client.
-	latest: 'prom-client@latest',
+	latest: '@prometheus-io/client',
 	trunk: 'git@github.com:prometheus/client_js',
 	current: { location: process.cwd() },
 });

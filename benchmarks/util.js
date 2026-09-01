@@ -19,8 +19,6 @@ const Path = require('path');
 module.exports = setupUtilSuite;
 
 function setupUtilSuite(suite) {
-	const skip = ['latest'];
-
 	suite.add(
 		'hashObject',
 		(client, Util) => {
@@ -33,7 +31,7 @@ function setupUtilSuite(suite) {
 				phase: 'load',
 			});
 		},
-		{ setup: findUtil, skip },
+		{ setup: findUtil },
 	);
 
 	suite.add(
@@ -49,7 +47,7 @@ function setupUtilSuite(suite) {
 				label1: 4,
 			});
 		},
-		{ setup, skip },
+		{ setup },
 	);
 
 	suite.add(
@@ -65,7 +63,7 @@ function setupUtilSuite(suite) {
 				label1: 4,
 			});
 		},
-		{ setup, skip },
+		{ setup },
 	);
 
 	suite.add(
@@ -91,7 +89,6 @@ function setupUtilSuite(suite) {
 
 				return new Util.LabelGrouper();
 			},
-			skip: ['latest', 'trunk'],
 		},
 	);
 }
