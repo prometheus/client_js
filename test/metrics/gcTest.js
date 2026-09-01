@@ -50,7 +50,7 @@ describe.each([
 			// node version is too old
 		}
 
-		if (perf_hooks) {
+		if (perf_hooks !== undefined) {
 			expect(metrics).toHaveLength(1);
 
 			expect(metrics[0].help).toEqual(

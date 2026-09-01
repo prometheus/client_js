@@ -342,7 +342,7 @@ describe.each([
 			} finally {
 				jest.dontMock('cluster');
 				gauge.remove();
-				if (connectedDescriptor) {
+				if (connectedDescriptor !== undefined) {
 					Object.defineProperty(process, 'connected', connectedDescriptor);
 				} else {
 					delete process.connected;
@@ -418,7 +418,7 @@ describe('worker message handling', () => {
 			jest.resetModules();
 			jest.dontMock('cluster');
 			process.removeListener('message', listener);
-			if (connectedDescriptor) {
+			if (connectedDescriptor !== undefined) {
 				Object.defineProperty(process, 'connected', connectedDescriptor);
 			} else {
 				delete process.connected;

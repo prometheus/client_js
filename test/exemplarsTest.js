@@ -280,17 +280,18 @@ describe('Exemplars', () => {
 				});
 			});
 
-			function getValueByLabel(label, values, key) {
+			function getValueByLabel(label, values, key = 'le') {
 				return values.reduce((acc, val) => {
-					if (val.labels && val.labels[key || 'le'] === label) {
+					if (val.labels?.[key] === label) {
 						acc = val;
 					}
 					return acc;
 				}, {});
 			}
-			function getValuesByLabel(label, values, key) {
+
+			function getValuesByLabel(label, values, key = 'le') {
 				return values.reduce((acc, val) => {
-					if (val.labels && val.labels[key || 'le'] === label) {
+					if (val.labels?.[key] === label) {
 						acc.push(val);
 					}
 					return acc;

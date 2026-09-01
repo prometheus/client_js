@@ -27,7 +27,7 @@ describe.each([
 	beforeAll(() => {
 		cpuUsage = process.cpuUsage;
 
-		if (cpuUsage) {
+		if (cpuUsage !== undefined) {
 			Object.defineProperty(process, 'cpuUsage', {
 				value() {
 					return { user: 1000, system: 10 };
@@ -43,7 +43,7 @@ describe.each([
 	});
 
 	afterAll(() => {
-		if (cpuUsage) {
+		if (cpuUsage !== undefined) {
 			Object.defineProperty(process, 'cpuUsage', {
 				value: cpuUsage,
 			});
