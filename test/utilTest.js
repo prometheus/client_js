@@ -114,7 +114,7 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 3, labels: { a: 2 } },
+					{ value: 3, labels: { a: '2' } },
 				]);
 			});
 
@@ -126,7 +126,7 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 4, labels: { a: 2 } },
+					{ value: 4, labels: { a: '2' } },
 				]);
 			});
 
@@ -139,11 +139,11 @@ describe('utils', () => {
 				expect(Array.from(map.values())).toStrictEqual([
 					{
 						value: 22,
-						labels: { a: 2 },
+						labels: { a: '2' },
 					},
 					{
 						value: 3,
-						labels: { a: 3 },
+						labels: { a: '3' },
 					},
 				]);
 			});
@@ -157,7 +157,7 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 3, labels: { a: 2 } },
+					{ value: 3, labels: { a: '2' } },
 				]);
 			});
 
@@ -168,7 +168,7 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 3 + 4, labels: { a: 2 } },
+					{ value: 3 + 4, labels: { a: '2' } },
 				]);
 			});
 
@@ -180,8 +180,8 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(2);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 3, labels: { a: 2 } },
-					{ value: 3, labels: { a: 3 } },
+					{ value: 3, labels: { a: '2' } },
+					{ value: 3, labels: { a: '3' } },
 				]);
 			});
 		});
@@ -216,7 +216,7 @@ describe('utils', () => {
 
 				expect(map.entry({ b: 22 })).toStrictEqual({
 					value: 10,
-					labels: { b: 22 },
+					labels: { b: '22' },
 				});
 			});
 		});
@@ -282,10 +282,82 @@ describe('utils', () => {
 
 				expect(actual).toStrictEqual(4);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: [2, 3], labels: { c: 200 } },
-					{ value: 4, labels: { c: 401 } },
+					{ value: [2, 3], labels: { c: '200' } },
+					{ value: 4, labels: { c: '401' } },
 				]);
 				expect(callback).toHaveBeenCalled();
+			});
+
+			it('hands the stored labels to init', () => {
+				const map = new LabelMap(['c']);
+				let seen;
+
+				map.getOrAdd({ c: 200 }, labels => {
+					seen = labels;
+					return 4;
+				});
+
+				expect(seen).toStrictEqual({ c: '200' });
+				expect(seen).toBe(map.entry({ c: 200 }).labels);
+			});
+
+			it.each([
+				['null prototype', () => Object.create(null)],
+				['a chain ending in null', () => Object.create(Object.create(null))],
+			])('keeps the source prototype for %s', (_name, make) => {
+				// keyFrom() reads declared names by property access. An ordinary copy
+				// would answer 'constructor' with Object.prototype's member and compute
+				// a different key than the entry is filed under, so remove() would miss.
+				const map = new LabelMap(['region', 'constructor']);
+				const labels = make();
+				labels.region = 'eu';
+
+				map.set(labels, 1);
+				const stored = map.entry(labels).labels;
+
+				expect(Object.getPrototypeOf(stored)).toBe(
+					Object.getPrototypeOf(labels),
+				);
+				expect(stored.constructor).toBeUndefined();
+				expect(map.keyFrom(stored)).toEqual(map.keyFrom(labels));
+
+				map.remove(stored);
+				expect(Array.from(map.values())).toStrictEqual([]);
+			});
+
+			it('does not let a __proto__ label replace the copy prototype', () => {
+				// Object.assign() would write through the __proto__ setter here.
+				class Labels {}
+				const map = new LabelMap(['__proto__', 'region']);
+				const labels = Object.create(Labels.prototype);
+				Object.defineProperty(labels, '__proto__', {
+					value: { poisoned: 'yes' },
+					enumerable: true,
+					writable: true,
+					configurable: true,
+				});
+				labels.region = 'eu';
+
+				map.set(labels, 1);
+				const stored = map.entry(labels).labels;
+
+				expect(Object.getPrototypeOf(stored)).toBe(Labels.prototype);
+				expect(stored.poisoned).toBeUndefined();
+				// Plain assignment would reach the setter, which drops a string.
+				expect(Object.hasOwn(stored, '__proto__')).toBe(true);
+				expect(stored.__proto__).toEqual('[object Object]');
+			});
+
+			it('leaves the map untouched when init throws', () => {
+				const map = new LabelMap(['c']);
+
+				expect(() =>
+					map.getOrAdd({ c: 200 }, () => {
+						throw new Error('nope');
+					}),
+				).toThrow('nope');
+				expect(Array.from(map.values())).toStrictEqual([]);
+				expect(map.getOrAdd({ c: 200 }, () => 4)).toStrictEqual(4);
 			});
 		});
 
@@ -308,7 +380,165 @@ describe('utils', () => {
 
 				expect(map.size).toEqual(1);
 				expect(Array.from(map.values())).toStrictEqual([
-					{ value: 4, labels: { a: 3 } },
+					{ value: 4, labels: { a: '3' } },
+				]);
+			});
+		});
+
+		describe('label normalization', () => {
+			it('coerces non-string label values once, at insertion', () => {
+				const map = new LabelMap(['a', 'b']);
+
+				map.set({ a: 3, b: true }, 1);
+
+				expect(Array.from(map.values())).toStrictEqual([
+					{ value: 1, labels: { a: '3', b: 'true' } },
+				]);
+			});
+
+			it("does not mutate the caller's labels object", () => {
+				const map = new LabelMap(['a']);
+				const labels = { a: 3 };
+
+				map.set(labels, 1);
+
+				expect(labels).toStrictEqual({ a: 3 });
+			});
+
+			it("does not keep a reference to the caller's labels object", () => {
+				const map = new LabelMap(['a']);
+				const labels = { a: 'x' };
+
+				map.set(labels, 1);
+				labels.a = 'mutated afterwards';
+
+				expect(map.entry({ a: 'x' }).labels).toStrictEqual({ a: 'x' });
+			});
+
+			it('looks up with either representation', () => {
+				const map = new LabelMap(['a']);
+
+				map.set({ a: 3 }, 7);
+
+				expect(map.get({ a: 3 })).toEqual(7);
+				expect(map.get({ a: '3' })).toEqual(7);
+			});
+
+			it('leaves nullish values untouched so stored labels round-trip', () => {
+				const map = new LabelMap(['a', 'b']);
+
+				map.set({ a: null, b: 3 }, 7);
+
+				// keyFrom() treats nullish as absent; coercing null to 'null' would
+				// make the stored labels compute a different key than the one the
+				// entry is stored under, breaking remove(entry.labels) round-trips.
+				expect(map.get({ a: null, b: 3 })).toEqual(7);
+				const [entry] = Array.from(map.values());
+				expect(entry.labels).toStrictEqual({ a: null, b: '3' });
+
+				map.remove(entry.labels);
+				expect(map.size).toEqual(0);
+			});
+
+			it('leaves undefined values untouched as well', () => {
+				const map = new LabelMap(['a', 'b']);
+
+				map.set({ a: undefined, b: 3 }, 7);
+
+				const [entry] = Array.from(map.values());
+				expect(entry.labels).toStrictEqual({ a: undefined, b: '3' });
+
+				// keyFrom() treats an explicit undefined as absent, so the two
+				// spellings have to stay the same series.
+				expect(map.get({ b: 3 })).toEqual(7);
+				expect(map.size).toEqual(1);
+
+				map.remove(entry.labels);
+				expect(map.size).toEqual(0);
+			});
+
+			it('keeps a `__proto__` label as an own property', () => {
+				const map = new LabelMap(['__proto__']);
+				// A literal would set the prototype instead of defining a property.
+				const labels = JSON.parse('{"__proto__":3}');
+
+				map.set(labels, 1);
+
+				const [entry] = Array.from(map.values());
+				expect(Object.hasOwn(entry.labels, '__proto__')).toBe(true);
+				expect(entry.labels.__proto__).toEqual('3');
+				expect(map.get(labels)).toEqual(1);
+
+				map.remove(entry.labels);
+				expect(map.size).toEqual(0);
+			});
+
+			it('keeps a `__proto__` label that is only inherited', () => {
+				const map = new LabelMap(['__proto__']);
+				const proto = JSON.parse('{"__proto__":"a"}');
+				const labels = Object.create(proto);
+
+				map.set(labels, 1);
+
+				const [entry] = Array.from(map.values());
+				expect(map.get(entry.labels)).toEqual(1);
+
+				map.remove(entry.labels);
+				expect(map.size).toEqual(0);
+			});
+
+			it('keeps inherited labels, which keyFrom() reads', () => {
+				const map = new LabelMap(['a']);
+				// keyFrom() reads labels[name], so it sees the prototype chain;
+				// an own-properties-only copy could not reproduce its own key.
+				const labels = Object.create({ a: 'x' });
+
+				map.set(labels, 1);
+
+				const [entry] = Array.from(map.values());
+				expect(map.get(entry.labels)).toEqual(1);
+
+				map.remove(entry.labels);
+				expect(map.size).toEqual(0);
+			});
+
+			it('coerces inherited labels too', () => {
+				const map = new LabelMap(['a']);
+				const labels = Object.create({ a: 3 });
+
+				map.set(labels, 1);
+
+				const [entry] = Array.from(map.values());
+				expect(entry.labels).toStrictEqual({ a: '3' });
+			});
+
+			it('keeps null and the string "null" distinct', () => {
+				const map = new LabelMap(['a']);
+
+				map.set({ a: null }, 1);
+				map.set({ a: 'null' }, 2);
+
+				expect(map.size).toEqual(2);
+			});
+
+			it('normalizes labels for entries created by getOrAdd()', () => {
+				const map = new LabelMap(['a']);
+
+				map.getOrAdd({ a: 3 }, () => 1);
+
+				expect(Array.from(map.values())).toStrictEqual([
+					{ value: 1, labels: { a: '3' } },
+				]);
+			});
+
+			it('keeps normalized labels across merge() updates', () => {
+				const map = new LabelMap(['a']);
+
+				map.merge({ a: 3 }, { count: 1 });
+				map.merge({ a: 3 }, { count: 2 });
+
+				expect(Array.from(map.values())).toStrictEqual([
+					{ count: 2, labels: { a: '3' } },
 				]);
 			});
 		});
