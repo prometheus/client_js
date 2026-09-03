@@ -53,7 +53,7 @@ describe('Metric', () => {
 		).toThrow(new Error('Optional "collect" parameter must be a function'));
 	});
 
-	it('applies defaults, sorts labels, and resets on construction', () => {
+	it('applies defaults, sorts labels on construction', () => {
 		const collect = jest.fn();
 		const metric = new TestMetric({
 			name: 'test_metric',
@@ -68,7 +68,6 @@ describe('Metric', () => {
 			collect,
 			enableExemplars: false,
 			labelNames: ['status', 'method'],
-			resetCalls: 1,
 			sortedLabelNames: ['method', 'status'],
 		});
 	});

@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Breaking
 
+- Gauges no longer initialize to zero, even if they have no labels
+- `reset()` changes that may require modifications to custom Metrics:
+  - it is no longer called in the middle of the constructor
+  - it now defaults to clearing the labelMap
+
 ### Changed
 
 - Update Prettier and lint-staged
