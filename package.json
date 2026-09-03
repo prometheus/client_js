@@ -48,7 +48,7 @@
 		"lint-staged": "^16.2.7",
 		"nock": "^13.0.5",
 		"prettier": "3.9.6",
-		"typescript": "^5.0.4",
+		"typescript": "^7.0.2",
 		"typescript-eslint": "^8.35.0"
 	},
 	"dependencies": {
