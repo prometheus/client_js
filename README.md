@@ -1,6 +1,9 @@
-# Prometheus client for node.js
+# <img src="images/prometheus-logo.svg" height="22px" alt="prometheus logo"/> Prometheus client for Node.js
 
-[![Actions Status](https://github.com/prometheus/client_js/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/prometheus/client_js/actions)
+[![CI](https://github.com/prometheus/client_js/actions/workflows/ci.yml/badge.svg)](https://github.com/prometheus/client_js/actions/workflows/ci.yml)
+[![npm package](https://img.shields.io/npm/v/@prometheus-io/client)](https://www.npmjs.com/package/@prometheus-io/client)
+[![downloads](https://img.shields.io/npm/dt/@prometheus-io/client)](https://www.npmjs.com/package/@prometheus-io/client)
+[![Issues](https://img.shields.io/github/issues/prometheus/client_js)](https://github.com/prometheus/client_js/issues)
 
 A prometheus client for Node.js that supports histogram, summaries, gauges and
 counters.
