@@ -517,6 +517,12 @@ register
   });
 ```
 
+To retrieve aggregated cluster metrics as JSON objects, use `await register.getClusterMetricsAsJSON()`:
+
+```js
+const metricsJson = await register.getClusterMetricsAsJSON();
+```
+
 ### Pushgateway
 
 It is possible to push metrics via a
