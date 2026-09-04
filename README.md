@@ -630,6 +630,12 @@ aggregation method, set the `aggregator` property in the metric config to one of
 'sum', 'first', 'min', 'max', 'average' or 'omit'. (See `lib/metrics/version.js`
 for an example.)
 
+Failed cluster collections are recorded in the
+`prom_client_cluster_worker_scrape_failures` histogram. Each observation is the
+number of workers that failed to return metrics. Since failed collections reject
+without returning partial metrics, the observation is exposed by the next
+successful call to `clusterMetrics()`.
+
 If you need to expose metrics about an individual worker, you can include a
 value that is unique to the worker (such as the worker ID or process ID) in a
 label. (See `example/server.js` for an example using

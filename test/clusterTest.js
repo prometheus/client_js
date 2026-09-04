@@ -24,6 +24,8 @@ const ANNOUNCEMENT = '@prometheus-io/client:announcement';
 const GET_METRICS_REQ = '@prometheus-io/client:getMetricsReq';
 const GET_METRICS_RES = '@prometheus-io/client:getMetricsRes';
 const GOODBYE = '@prometheus-io/client:goodbye';
+const CLUSTER_WORKER_SCRAPE_FAILURES =
+	'prom_client_cluster_worker_scrape_failures';
 
 function metric(value) {
 	return {
@@ -91,6 +93,7 @@ describe.each([
 
 		afterEach(() => {
 			cluster.off('message', listener);
+			jest.useRealTimers();
 			jest.restoreAllMocks();
 		});
 
@@ -98,11 +101,7 @@ describe.each([
 			const ar = new AggregatorRegistry(regType);
 			const metrics = await ar.clusterMetrics();
 
-			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
-				expect(metrics).toContain('# EOF\n');
-			} else {
-				expect(metrics.trim()).toEqual('');
-			}
+			expect(metrics).toContain(`${CLUSTER_WORKER_SCRAPE_FAILURES}_count 0`);
 		});
 
 		it('formats in the correct content type', async () => {
@@ -112,7 +111,7 @@ describe.each([
 			if (regType === Registry.OPENMETRICS_CONTENT_TYPE) {
 				expect(metrics).toContain('# EOF\n');
 			} else {
-				expect(metrics.trim()).toEqual('');
+				expect(metrics).not.toContain('# EOF\n');
 			}
 		});
 
@@ -185,6 +184,112 @@ describe.each([
 				await expect(result).resolves.toContain('primary_gauge_test 10\n');
 			} finally {
 				gauge.remove();
+			}
+		});
+
+		it('records the number of workers that time out', async () => {
+			jest.useFakeTimers();
+
+			const originalWorkers = cluster.workers;
+			const registry = new AggregatorRegistry(regType);
+			const workers = Object.fromEntries(
+				[1, 2, 3].map(id => [
+					id,
+					{
+						id,
+						isConnected: () => true,
+						send: jest.fn(),
+					},
+				]),
+			);
+			cluster.workers = workers;
+
+			Object.values(workers).forEach(worker => {
+				cluster.emit('message', worker, { type: ANNOUNCEMENT });
+			});
+
+			try {
+				await discovery;
+
+				const failedResult = registry.clusterMetrics();
+				const rejection = expect(failedResult).rejects.toThrow(
+					'Operation timed out. 2 outstanding responses.',
+				);
+
+				cluster.emit('message', workers[1], {
+					type: GET_METRICS_RES,
+					requestId: 0,
+					metrics: [[]],
+				});
+
+				await jest.advanceTimersByTimeAsync(5_000);
+				await rejection;
+
+				const recoveredResult = registry.clusterMetrics();
+				Object.values(workers).forEach(worker => {
+					cluster.emit('message', worker, {
+						type: GET_METRICS_RES,
+						requestId: 1,
+						metrics: [[]],
+					});
+				});
+
+				await expect(recoveredResult).resolves.toContain(
+					`${CLUSTER_WORKER_SCRAPE_FAILURES}_sum 2`,
+				);
+				await expect(recoveredResult).resolves.toContain(
+					`${CLUSTER_WORKER_SCRAPE_FAILURES}_count 1`,
+				);
+			} finally {
+				Object.values(workers).forEach(worker => {
+					cluster.emit('disconnect', worker);
+				});
+				cluster.workers = originalWorkers;
+			}
+		});
+
+		it('records worker-reported scrape errors', async () => {
+			const originalWorkers = cluster.workers;
+			const registry = new AggregatorRegistry(regType);
+			const worker = {
+				id: 1,
+				isConnected: () => true,
+				send: jest.fn(),
+			};
+			cluster.workers = [worker];
+			cluster.emit('message', worker, { type: ANNOUNCEMENT });
+
+			try {
+				await discovery;
+
+				const failedResult = registry.clusterMetrics();
+				const rejection = expect(failedResult).rejects.toThrow(
+					'worker collection failed',
+				);
+
+				cluster.emit('message', worker, {
+					type: GET_METRICS_RES,
+					requestId: 0,
+					error: 'worker collection failed',
+				});
+				await rejection;
+
+				const recoveredResult = registry.clusterMetrics();
+				cluster.emit('message', worker, {
+					type: GET_METRICS_RES,
+					requestId: 1,
+					metrics: [[]],
+				});
+
+				await expect(recoveredResult).resolves.toContain(
+					`${CLUSTER_WORKER_SCRAPE_FAILURES}_sum 1`,
+				);
+				await expect(recoveredResult).resolves.toContain(
+					`${CLUSTER_WORKER_SCRAPE_FAILURES}_count 1`,
+				);
+			} finally {
+				cluster.emit('disconnect', worker);
+				cluster.workers = originalWorkers;
 			}
 		});
 
