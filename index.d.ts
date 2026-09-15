@@ -28,24 +28,32 @@ export type OpenMetricsContentType =
 export type PrometheusContentType =
 	`${PrometheusMIME}; version=${PrometheusMetricsVersion}; charset=${Charset}`;
 
+export type PrometheusProtobufContentType =
+	'application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited';
+
 export type RegistryContentType =
-	PrometheusContentType | OpenMetricsContentType;
+	| PrometheusContentType
+	| OpenMetricsContentType
+	| PrometheusProtobufContentType;
+
+export type RegistryMetrics<T extends RegistryContentType> =
+	T extends PrometheusProtobufContentType ? Uint8Array : string;
 
 /**
  * Container for all registered metrics
  */
 export class Registry<
-	BoundRegistryContentType extends RegistryContentType = RegistryContentType,
+	BoundRegistryContentType extends RegistryContentType = PrometheusContentType,
 > {
 	/**
 	 * @param regContentType The content type of the registry
 	 */
-	constructor(regContentType?: RegistryContentType);
+	constructor(regContentType?: BoundRegistryContentType);
 
 	/**
-	 * Get string representation for all metrics
+	 * Get metrics as text, or a Buffer for a Prometheus protobuf registry
 	 */
-	metrics(): Promise<string>;
+	metrics(): Promise<RegistryMetrics<BoundRegistryContentType>>;
 
 	/**
 	 * Remove all metrics from the registry
@@ -77,8 +85,8 @@ export class Registry<
 	): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
 
 	/**
-	 * Get string representation for a metric
-	 * @param metric Metric to convert to a string
+	 * Get a metric as text
+	 * @param metric Metric to serialize
 	 */
 	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
 
@@ -113,7 +121,7 @@ export class Registry<
 	setDefaultLabels(labels: object): void;
 
 	/**
-	 * Get a string representation of a single metric by name
+	 * Get a single metric as text
 	 * @param name The name of the metric
 	 */
 	getSingleMetricAsString(name: string): Promise<string>;
@@ -121,22 +129,22 @@ export class Registry<
 	/**
 	 * Gets the Content-Type of the metrics for use in the response headers.
 	 */
-	readonly contentType: PrometheusContentType | OpenMetricsContentType;
+	readonly contentType: RegistryContentType;
 
 	/**
-	 * Set the content type of a registry. Used to change between Prometheus and
-	 * OpenMetrics versions.
+	 * Set the content type of a registry. The returned registry has the new
+	 * serialization return type; use it when switching between text and protobuf.
 	 * @param contentType The type of the registry
 	 */
-	setContentType(
-		contentType: PrometheusContentType | OpenMetricsContentType,
-	): void;
+	setContentType<T extends RegistryContentType>(contentType: T): Registry<T>;
 
 	/**
 	 * Merge registers
 	 * @param registers The registers you want to merge together
 	 */
-	static merge(registers: Registry[]): Registry;
+	static merge<T extends RegistryContentType>(
+		registers: Registry<T>[],
+	): Registry<T>;
 
 	/**
 	 * Creates a new Registry instance from an array of metrics that were
@@ -147,9 +155,10 @@ export class Registry<
 	 *   `registry.getMetricsAsJSON()`.
 	 * @returns {Registry} aggregated registry.
 	 */
-	static aggregate<T extends RegistryContentType>(
+	static aggregate<T extends RegistryContentType = PrometheusContentType>(
 		metricsArr: Array<object>,
-	): Registry<T>; // TODO Promise?
+		registryType?: T,
+	): Registry<T>;
 
 	/**
 	 * HTTP Prometheus Content-Type for metrics response headers.
@@ -160,6 +169,11 @@ export class Registry<
 	 * HTTP OpenMetrics Content-Type for metrics response headers.
 	 */
 	static OPENMETRICS_CONTENT_TYPE: OpenMetricsContentType;
+
+	/**
+	 * HTTP Content-Type for length-delimited Prometheus protobuf metrics.
+	 */
+	static PROMETHEUS_PROTOBUF_CONTENT_TYPE: PrometheusProtobufContentType;
 }
 export type Collector = () => void;
 
@@ -184,15 +198,23 @@ export const prometheusContentType: PrometheusContentType;
  */
 export const openMetricsContentType: OpenMetricsContentType;
 
+/**
+ * HTTP Content-Type for length-delimited Prometheus protobuf metrics.
+ */
+export const prometheusProtobufContentType: PrometheusProtobufContentType;
+
 export class ClusterRegistry<
-	T extends RegistryContentType,
+	T extends RegistryContentType = PrometheusContentType,
 > extends Registry<T> {
+	setContentType<U extends RegistryContentType>(
+		contentType: U,
+	): ClusterRegistry<U>;
+
 	/**
 	 * Gets aggregated metrics for all workers.
-	 * @returns {Promise<string>} Promise that resolves with the aggregated
-	 * metrics.
+	 * @returns Promise that resolves with text or protobuf bytes.
 	 */
-	clusterMetrics(): Promise<string>;
+	clusterMetrics(): Promise<RegistryMetrics<T>>;
 
 	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
@@ -202,22 +224,22 @@ export class ClusterRegistry<
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Registry<RegistryContentType>[] | Registry<RegistryContentType>,
 	): void;
 }
 
-export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
+export class WorkerRegistry<
+	T extends RegistryContentType = PrometheusContentType,
+> extends Registry<T> {
+	setContentType<U extends RegistryContentType>(
+		contentType: U,
+	): WorkerRegistry<U>;
+
 	/**
 	 * Gets aggregated metrics for all workers.
-	 * @returns {Promise<string>} Promise that resolves with the aggregated
-	 * metrics.
+	 * @returns Promise that resolves with text or protobuf bytes.
 	 */
-	workerMetrics(): Promise<string>;
+	workerMetrics(): Promise<RegistryMetrics<T>>;
 
 	/**
 	 * Orderly shutdown of the registry.
@@ -238,12 +260,7 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Registry<RegistryContentType>[] | Registry<RegistryContentType>,
 	): void;
 }
 
@@ -251,14 +268,17 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
  * @deprecated
  */
 export class AggregatorRegistry<
-	T extends RegistryContentType,
+	T extends RegistryContentType = PrometheusContentType,
 > extends Registry<T> {
+	setContentType<U extends RegistryContentType>(
+		contentType: U,
+	): AggregatorRegistry<U>;
+
 	/**
 	 * Gets aggregated metrics for all workers.
-	 * @returns {Promise<string>} Promise that resolves with the aggregated
-	 * metrics.
+	 * @returns Promise that resolves with text or protobuf bytes.
 	 */
-	clusterMetrics(): Promise<string>;
+	clusterMetrics(): Promise<RegistryMetrics<T>>;
 
 	/**
 	 * Orderly shutdown of the registry.
@@ -279,12 +299,7 @@ export class AggregatorRegistry<
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Registry<RegistryContentType>[] | Registry<RegistryContentType>,
 	): void;
 }
 
@@ -321,6 +336,36 @@ export interface MetricObjectWithValues<
 	T extends MetricValue<string>,
 > extends MetricObject {
 	values: T[];
+	nativeHistograms?: NativeHistogramValue[];
+}
+
+export interface NativeHistogramSpan {
+	offset: number;
+	length: number;
+}
+
+export interface NativeHistogramExemplar {
+	labelSet: Record<string, string | number>;
+	value: number;
+	/** Unix timestamp in seconds. */
+	timestamp: number;
+}
+
+/** A snapshot of one label set's native histogram, suitable for JSON and IPC. */
+export interface NativeHistogramValue<T extends string = string> {
+	labels: LabelValues<T>;
+	count: number;
+	sum: number;
+	schema: number;
+	zeroThreshold: number;
+	zeroCount: number;
+	positiveSpans: NativeHistogramSpan[];
+	positiveDeltas: number[];
+	negativeSpans: NativeHistogramSpan[];
+	negativeDeltas: number[];
+	/** Unix timestamp in seconds. */
+	createdTimestamp: number;
+	exemplars: NativeHistogramExemplar[];
 }
 
 export type MetricValue<T extends string> = {
@@ -340,9 +385,7 @@ interface MetricConfiguration<T extends string> {
 	name: string;
 	help: string;
 	labelNames?: T[] | readonly T[];
-	registers?: (
-		Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-	)[];
+	registers?: Registry<RegistryContentType>[];
 	aggregator?: Aggregator;
 	collect?: CollectFunction<any>;
 	enableExemplars?: boolean;
@@ -363,7 +406,7 @@ export interface IncreaseDataWithExemplar<T extends string> {
 export interface ObserveDataWithExemplar<T extends string> {
 	value: number;
 	labels?: LabelValues<T>;
-	exemplarLabels?: LabelValues<T>;
+	exemplarLabels?: Record<string, string | number>;
 }
 
 /**
@@ -582,9 +625,23 @@ export namespace Gauge {
 	}
 }
 
-export interface HistogramConfiguration<
-	T extends string,
-> extends MetricConfiguration<T> {
+export interface NativeHistogramConfiguration {
+	/**
+	 * Enable native buckets with an upper bound on their growth factor.
+	 * Values &lt;= 1 disable native buckets (the default). A value of 1.1 is recommended.
+	 */
+	nativeHistogramBucketFactor?: number;
+	/** Absolute values &lt;= this threshold go into the zero bucket. Default: 2^-128. */
+	nativeHistogramZeroThreshold?: number;
+	/**
+	 * Limit populated positive and negative buckets per label set by reducing
+	 * resolution, down to schema -4. Default: 160. Zero disables the limit.
+	 */
+	nativeHistogramMaxBucketNumber?: number;
+}
+
+export interface HistogramConfiguration<T extends string>
+	extends MetricConfiguration<T>, NativeHistogramConfiguration {
 	buckets?: number[];
 	collect?: CollectFunction<Histogram<T>>;
 }
@@ -640,8 +697,11 @@ export class Histogram<T extends string = NoLabelNameType> {
 	 */
 	startTimer(
 		labels?: LabelValues<T>,
-		exemplarLabels?: LabelValues<T>,
-	): (labels?: LabelValues<T>, exemplarLabels?: LabelValues<T>) => number;
+		exemplarLabels?: Record<string, string | number>,
+	): (
+		labels?: LabelValues<T>,
+		exemplarLabels?: Record<string, string | number>,
+	) => number;
 
 	/**
 	 * Reset histogram values
@@ -694,10 +754,13 @@ export namespace Histogram {
 		 * @returns Function to invoke when timer should be stopped. The value it
 		 * returns is the timed duration.
 		 */
-		startTimer(): (labels?: LabelValues<T>) => void;
+		startTimer(): (
+			labels?: LabelValues<T>,
+			exemplarLabels?: Record<string, string | number>,
+		) => number;
 	}
 
-	interface Config {
+	interface Config extends NativeHistogramConfiguration {
 		/**
 		 * Buckets used in the histogram
 		 */

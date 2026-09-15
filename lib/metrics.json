@@ -1,0 +1,344 @@
+{
+	"nested": {
+		"io": {
+			"nested": {
+				"prometheus": {
+					"nested": {
+						"client": {
+							"options": {
+								"java_package": "io.prometheus.client",
+								"go_package": "github.com/prometheus/client_model/go;io_prometheus_client"
+							},
+							"nested": {
+								"LabelPair": {
+									"edition": "proto2",
+									"fields": {
+										"name": {
+											"type": "string",
+											"id": 1
+										},
+										"value": {
+											"type": "string",
+											"id": 2
+										}
+									}
+								},
+								"MetricType": {
+									"edition": "proto2",
+									"values": {
+										"COUNTER": 0,
+										"GAUGE": 1,
+										"SUMMARY": 2,
+										"UNTYPED": 3,
+										"HISTOGRAM": 4,
+										"GAUGE_HISTOGRAM": 5
+									}
+								},
+								"Gauge": {
+									"edition": "proto2",
+									"fields": {
+										"value": {
+											"type": "double",
+											"id": 1
+										}
+									}
+								},
+								"Counter": {
+									"edition": "proto2",
+									"fields": {
+										"value": {
+											"type": "double",
+											"id": 1
+										},
+										"exemplar": {
+											"type": "Exemplar",
+											"id": 2
+										},
+										"createdTimestamp": {
+											"type": "google.protobuf.Timestamp",
+											"id": 3,
+											"protoName": "created_timestamp"
+										}
+									}
+								},
+								"Quantile": {
+									"edition": "proto2",
+									"fields": {
+										"quantile": {
+											"type": "double",
+											"id": 1
+										},
+										"value": {
+											"type": "double",
+											"id": 2
+										}
+									}
+								},
+								"Summary": {
+									"edition": "proto2",
+									"fields": {
+										"sampleCount": {
+											"type": "uint64",
+											"id": 1,
+											"protoName": "sample_count"
+										},
+										"sampleSum": {
+											"type": "double",
+											"id": 2,
+											"protoName": "sample_sum"
+										},
+										"quantile": {
+											"rule": "repeated",
+											"type": "Quantile",
+											"id": 3
+										},
+										"createdTimestamp": {
+											"type": "google.protobuf.Timestamp",
+											"id": 4,
+											"protoName": "created_timestamp"
+										}
+									}
+								},
+								"Untyped": {
+									"edition": "proto2",
+									"fields": {
+										"value": {
+											"type": "double",
+											"id": 1
+										}
+									}
+								},
+								"Histogram": {
+									"edition": "proto2",
+									"fields": {
+										"sampleCount": {
+											"type": "uint64",
+											"id": 1,
+											"protoName": "sample_count"
+										},
+										"sampleCountFloat": {
+											"type": "double",
+											"id": 4,
+											"protoName": "sample_count_float"
+										},
+										"sampleSum": {
+											"type": "double",
+											"id": 2,
+											"protoName": "sample_sum"
+										},
+										"bucket": {
+											"rule": "repeated",
+											"type": "Bucket",
+											"id": 3
+										},
+										"createdTimestamp": {
+											"type": "google.protobuf.Timestamp",
+											"id": 15,
+											"protoName": "created_timestamp"
+										},
+										"schema": {
+											"type": "sint32",
+											"id": 5
+										},
+										"zeroThreshold": {
+											"type": "double",
+											"id": 6,
+											"protoName": "zero_threshold"
+										},
+										"zeroCount": {
+											"type": "uint64",
+											"id": 7,
+											"protoName": "zero_count"
+										},
+										"zeroCountFloat": {
+											"type": "double",
+											"id": 8,
+											"protoName": "zero_count_float"
+										},
+										"negativeSpan": {
+											"rule": "repeated",
+											"type": "BucketSpan",
+											"id": 9,
+											"protoName": "negative_span"
+										},
+										"negativeDelta": {
+											"rule": "repeated",
+											"type": "sint64",
+											"id": 10,
+											"protoName": "negative_delta"
+										},
+										"negativeCount": {
+											"rule": "repeated",
+											"type": "double",
+											"id": 11,
+											"protoName": "negative_count"
+										},
+										"positiveSpan": {
+											"rule": "repeated",
+											"type": "BucketSpan",
+											"id": 12,
+											"protoName": "positive_span"
+										},
+										"positiveDelta": {
+											"rule": "repeated",
+											"type": "sint64",
+											"id": 13,
+											"protoName": "positive_delta"
+										},
+										"positiveCount": {
+											"rule": "repeated",
+											"type": "double",
+											"id": 14,
+											"protoName": "positive_count"
+										},
+										"exemplars": {
+											"rule": "repeated",
+											"type": "Exemplar",
+											"id": 16
+										}
+									}
+								},
+								"Bucket": {
+									"edition": "proto2",
+									"fields": {
+										"cumulativeCount": {
+											"type": "uint64",
+											"id": 1,
+											"protoName": "cumulative_count"
+										},
+										"cumulativeCountFloat": {
+											"type": "double",
+											"id": 4,
+											"protoName": "cumulative_count_float"
+										},
+										"upperBound": {
+											"type": "double",
+											"id": 2,
+											"protoName": "upper_bound"
+										},
+										"exemplar": {
+											"type": "Exemplar",
+											"id": 3
+										}
+									}
+								},
+								"BucketSpan": {
+									"edition": "proto2",
+									"fields": {
+										"offset": {
+											"type": "sint32",
+											"id": 1
+										},
+										"length": {
+											"type": "uint32",
+											"id": 2
+										}
+									}
+								},
+								"Exemplar": {
+									"edition": "proto2",
+									"fields": {
+										"label": {
+											"rule": "repeated",
+											"type": "LabelPair",
+											"id": 1
+										},
+										"value": {
+											"type": "double",
+											"id": 2
+										},
+										"timestamp": {
+											"type": "google.protobuf.Timestamp",
+											"id": 3
+										}
+									}
+								},
+								"Metric": {
+									"edition": "proto2",
+									"fields": {
+										"label": {
+											"rule": "repeated",
+											"type": "LabelPair",
+											"id": 1
+										},
+										"gauge": {
+											"type": "Gauge",
+											"id": 2
+										},
+										"counter": {
+											"type": "Counter",
+											"id": 3
+										},
+										"summary": {
+											"type": "Summary",
+											"id": 4
+										},
+										"untyped": {
+											"type": "Untyped",
+											"id": 5
+										},
+										"histogram": {
+											"type": "Histogram",
+											"id": 7
+										},
+										"timestampMs": {
+											"type": "int64",
+											"id": 6,
+											"protoName": "timestamp_ms"
+										}
+									}
+								},
+								"MetricFamily": {
+									"edition": "proto2",
+									"fields": {
+										"name": {
+											"type": "string",
+											"id": 1
+										},
+										"help": {
+											"type": "string",
+											"id": 2
+										},
+										"type": {
+											"type": "MetricType",
+											"id": 3
+										},
+										"metric": {
+											"rule": "repeated",
+											"type": "Metric",
+											"id": 4
+										},
+										"unit": {
+											"type": "string",
+											"id": 5
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"google": {
+			"nested": {
+				"protobuf": {
+					"nested": {
+						"Timestamp": {
+							"fields": {
+								"seconds": {
+									"type": "int64",
+									"id": 1
+								},
+								"nanos": {
+									"type": "int32",
+									"id": 2
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

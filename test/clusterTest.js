@@ -116,6 +116,39 @@ describe.each([
 			}
 		});
 
+		it('keeps pending scrapes in their original content types', async () => {
+			const { Registry: LocalRegistry, Histogram } = require('../index');
+			const { decodeMetricFamilies } = require('./helpers/nativeHistogram');
+			const local = new LocalRegistry();
+			let finishCollecting;
+			const collected = new Promise(resolve => {
+				finishCollecting = resolve;
+			});
+			new Histogram({
+				name: 'pending_native',
+				help: 'Pending native histogram',
+				registers: [local],
+				nativeHistogramBucketFactor: 1.1,
+				async collect() {
+					await collected;
+				},
+			}).observe(1);
+			AggregatorRegistry.setRegistries(local);
+			try {
+				const registry = new AggregatorRegistry(regType);
+				const text = registry.clusterMetrics();
+				registry.setContentType(Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE);
+				const binary = registry.clusterMetrics();
+				finishCollecting();
+				const [textBody, binaryBody] = await Promise.all([text, binary]);
+				expect(textBody).toContain('pending_native_count 1');
+				const [family] = decodeMetricFamilies(binaryBody);
+				expect(family.metric[0].histogram.sampleCount).toBe(1);
+			} finally {
+				AggregatorRegistry.setRegistries(LocalRegistry.globalRegistry);
+			}
+		});
+
 		it("listeners don't accumulate", () => {
 			for (let i = 0; i < 30; i++) {
 				jest.resetModules();

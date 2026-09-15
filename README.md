@@ -228,6 +228,39 @@ xhrRequest(function (err, res) {
 });
 ```
 
+##### Native histograms
+
+Enable native buckets with `nativeHistogramBucketFactor` and expose the registry
+using Prometheus protobuf:
+
+```js
+const registry = new client.Registry(
+  client.Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE,
+);
+const histogram = new client.Histogram({
+  name: 'request_duration_seconds',
+  help: 'Time spent handling requests',
+  nativeHistogramBucketFactor: 1.1,
+  buckets: [],
+  registers: [registry],
+});
+histogram.observe(0.125);
+
+res.setHeader('Content-Type', registry.contentType);
+res.end(await registry.metrics()); // A Buffer for protobuf registries
+```
+
+Native buckets cover positive and negative values using exponential buckets and
+a zero bucket. The default zero threshold is `2 ** -128`, configurable with
+`nativeHistogramZeroThreshold`. The default budget of 160 populated buckets per
+label set can be configured with `nativeHistogramMaxBucketNumber` (0 disables
+the budget). When needed, resolution is reduced down to schema -4; at that
+minimum resolution the budget is a soft limit.
+
+Classic buckets are retained by default. Set `buckets: []` for native-only
+protobuf output. Prometheus text and OpenMetrics 1.0 text expose only the classic
+representation. Prometheus must also be configured to scrape native histograms.
+
 #### Summary
 
 Summaries calculate percentiles of observed values.
@@ -397,11 +430,12 @@ enabled. They get a single object with the format
 `{labels, value, exemplarLabels}`.
 
 When using exemplars, the registry used for metrics should be set to OpenMetrics
-type (including the global or default registry if no registries are specified).
+or Prometheus protobuf (including the global or default registry if no registries
+are specified).
 
 ### Registry type
 
-The library supports both the old Prometheus format and the OpenMetrics format.
+The library supports Prometheus text, OpenMetrics text, and Prometheus protobuf.
 The format can be set per registry. For default metrics:
 
 ```js
@@ -419,9 +453,14 @@ this is currently the default registry type.
 **OPENMETRICS_CONTENT_TYPE** - defaults to version 1.0.0 of the
 [OpenMetrics standard](https://github.com/OpenObservability/OpenMetrics/blob/d99b705f611b75fec8f450b05e344e02eea6921d/specification/OpenMetrics.md).
 
+**PROMETHEUS_PROTOBUF_CONTENT_TYPE** - length-delimited Prometheus protobuf,
+including native histograms. Registry serialization methods return a `Buffer`
+for this format.
+
 The HTTP Content-Type string for each registry type is exposed both at module
-level (`prometheusContentType` and `openMetricsContentType`) and as static
-properties on the `Registry` object.
+level (`prometheusContentType`, `openMetricsContentType`, and
+`prometheusProtobufContentType`) and as static properties on the `Registry`
+object.
 
 The `contentType` constant exposed by the module returns the default content
 type when creating a new registry, currently defaults to Prometheus type.

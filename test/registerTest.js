@@ -33,6 +33,21 @@ describe('Register', () => {
 		}).toThrow(expectedContentTypeErrStr);
 	});
 
+	it.each([
+		Registry.PROMETHEUS_CONTENT_TYPE,
+		Registry.OPENMETRICS_CONTENT_TYPE,
+		Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE,
+	])('accepts %s in both the constructor and setter', contentType => {
+		expect(new Registry(contentType).contentType).toBe(contentType);
+		const registry = new Registry();
+		expect(registry.setContentType(contentType)).toBe(registry);
+		expect(registry.contentType).toBe(contentType);
+		expect(() => registry.setContentType(contentTypeTestStr)).toThrow(
+			expectedContentTypeErrStr,
+		);
+		expect(registry.contentType).toBe(contentType);
+	});
+
 	describe.each([
 		['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 		['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],
@@ -1105,6 +1120,41 @@ describe('Register', () => {
 				expect(output[0].name).toEqual('test_metric');
 			});
 		});
+
+		it('does not rename counters shared with another registry when scraped', async () => {
+			const other = new Registry();
+			const counter = new Counter({
+				name: 'shared_requests_total',
+				help: 'Requests',
+				registers: [register, other],
+			});
+			counter.inc();
+			const first = await register.metrics();
+			expect(counter.name).toBe('shared_requests_total');
+			expect(await register.metrics()).toBe(first);
+			expect(await other.metrics()).toContain('shared_requests_total 1');
+			expect(await register.getSingleMetricAsString(counter.name)).toContain(
+				'shared_requests_total 1',
+			);
+		});
+
+		it.each([null, undefined])(
+			'uses registry defaults for a shared histogram label with value %p',
+			async value => {
+				register.setDefaultLabels({ service: 'frontend' });
+				const histogram = new Histogram({
+					name: 'default_labels',
+					help: 'Default labels',
+					labelNames: ['service'],
+					registers: [register],
+				});
+				histogram.observe({ service: value }, 0.5);
+				const before = await histogram.getForPromString();
+				const labels = { ...before.values[0].sharedLabels };
+				expect(await register.metrics()).toContain('service="frontend"');
+				expect(before.values[0].sharedLabels).toEqual(labels);
+			},
+		);
 
 		function getMetric(name) {
 			name = name || 'test_metric';

@@ -19,6 +19,7 @@
 		"run-prettier": "prettier .",
 		"check-prettier": "npm run run-prettier -- --check",
 		"compile-typescript": "tsc --project .",
+		"generate-protobuf": "node scripts/generate-protobuf.js",
 		"prepare": "husky"
 	},
 	"repository": {
@@ -53,6 +54,7 @@
 	},
 	"dependencies": {
 		"@opentelemetry/api": "^1.4.0",
+		"protobufjs": "^8.8.0",
 		"tdigest": "^0.1.1"
 	},
 	"types": "./index.d.ts",

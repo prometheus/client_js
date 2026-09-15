@@ -24,6 +24,11 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Opt-in native histograms with configurable exponential buckets, a zero bucket,
+  bucket-count limits, exemplars, and worker/cluster aggregation.
+- Prometheus protobuf registries for native and classic metrics, with public
+  content-type constants and TypeScript support for binary output.
+
 ## [0.16.0] - 2026-08-24
 
 This release marks our first release as a Prometheus subproject.
