@@ -46,7 +46,7 @@
 		"husky": "^9.0.0",
 		"jest": "^30.0.2",
 		"lint-staged": "^16.2.7",
-		"nock": "^13.0.5",
+		"nock": "^14.0.17",
 		"prettier": "3.9.6",
 		"typescript": "^5.0.4",
 		"typescript-eslint": "^8.35.0"
