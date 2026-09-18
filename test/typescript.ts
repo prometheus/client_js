@@ -13,6 +13,8 @@
 // limitations under the License.
 
 import {
+	AggregatorRegistry,
+	ClusterRegistry,
 	Counter,
 	Pushgateway,
 	Registry,
@@ -107,3 +109,20 @@ async function metricTypeMatchesRuntimeStrings() {
 	void MetricType.Counter;
 }
 void metricTypeMatchesRuntimeStrings;
+
+async function clusterMetricsAsJSONTypeCheck() {
+	const clusterRegistry = new ClusterRegistry();
+	const json: MetricObjectWithValues<MetricValue<string>>[] =
+		await clusterRegistry.getClusterMetricsAsJSON();
+	void json;
+
+	const filteredJson: MetricObjectWithValues<MetricValue<string>>[] =
+		await clusterRegistry.getClusterMetricsAsJSON('sum');
+	void filteredJson;
+
+	const aggregatorRegistry = new AggregatorRegistry();
+	const aggJson: MetricObjectWithValues<MetricValue<string>>[] =
+		await aggregatorRegistry.getClusterMetricsAsJSON();
+	void aggJson;
+}
+void clusterMetricsAsJSONTypeCheck;

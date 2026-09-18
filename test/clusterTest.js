@@ -422,6 +422,138 @@ describe.each([
 		});
 	});
 
+	describe('aggregatorRegistry.getClusterMetricsAsJSON()', () => {
+		let AggregatorRegistry;
+		let listener;
+		let discovery;
+
+		beforeEach(() => {
+			jest.resetModules();
+			AggregatorRegistry = require('../lib/cluster');
+
+			discovery = new Promise(resolve => {
+				listener = message => {
+					resolve(message);
+				};
+
+				cluster.on('message', listener);
+			});
+		});
+
+		afterEach(() => {
+			cluster.off('message', listener);
+			jest.restoreAllMocks();
+		});
+
+		it('returns empty array if there are no cluster workers and no primary metrics', async () => {
+			const ar = new AggregatorRegistry(regType);
+			const metrics = await ar.getClusterMetricsAsJSON();
+			expect(metrics).toEqual([]);
+		});
+
+		it('aggregates worker responses as JSON objects', async () => {
+			const originalWorkers = cluster.workers;
+			const registry = new AggregatorRegistry(regType);
+			const workers = Object.fromEntries(
+				[1, 2, 3].map(id => [
+					id,
+					{
+						id,
+						isConnected: () => true,
+						send: jest.fn(),
+					},
+				]),
+			);
+			cluster.workers = workers;
+
+			Object.values(workers).forEach(worker => {
+				cluster.emit('message', worker, { type: ANNOUNCEMENT });
+			});
+
+			try {
+				await discovery;
+
+				const result = registry.getClusterMetricsAsJSON();
+				for (const [id, value] of [
+					[3, 0.3437699],
+					[1, 0.5848208],
+					[2, 0.5479198],
+				]) {
+					cluster.emit('message', workers[id], {
+						type: GET_METRICS_RES,
+						requestId: 0,
+						metrics: [[metric(value)]],
+					});
+				}
+
+				const output = await result;
+				expect(output).toEqual([
+					{
+						aggregator: 'sum',
+						help: 'test metric',
+						name: 'test_metric',
+						type: 'gauge',
+						values: [{ labels: {}, value: 1.4765105 }],
+					},
+				]);
+			} finally {
+				Object.values(workers).forEach(worker => {
+					cluster.emit('disconnect', worker);
+				});
+				cluster.workers = originalWorkers;
+			}
+		});
+
+		it('supports aggregator parameter filtering', async () => {
+			const originalWorkers = cluster.workers;
+			const registry = new AggregatorRegistry(regType);
+			const workers = Object.fromEntries(
+				[1].map(id => [
+					id,
+					{
+						id,
+						isConnected: () => true,
+						send: jest.fn(),
+					},
+				]),
+			);
+			cluster.workers = workers;
+
+			Object.values(workers).forEach(worker => {
+				cluster.emit('message', worker, { type: ANNOUNCEMENT });
+			});
+
+			try {
+				await discovery;
+
+				const result = registry.getClusterMetricsAsJSON('sum');
+				cluster.emit('message', workers[1], {
+					type: GET_METRICS_RES,
+					requestId: 0,
+					metrics: [[metric(42)]],
+				});
+
+				const output = await result;
+				expect(output).toHaveLength(1);
+				expect(output[0].name).toBe('test_metric');
+
+				const omitResult = registry.getClusterMetricsAsJSON('omit');
+				cluster.emit('message', workers[1], {
+					type: GET_METRICS_RES,
+					requestId: 1,
+					metrics: [[metric(42)]],
+				});
+				const omitOutput = await omitResult;
+				expect(omitOutput).toEqual([]);
+			} finally {
+				Object.values(workers).forEach(worker => {
+					cluster.emit('disconnect', worker);
+				});
+				cluster.workers = originalWorkers;
+			}
+		});
+	});
+
 	describe('shutdown()', () => {
 		let AggregatorRegistry;
 		let listener;
@@ -469,9 +601,29 @@ describe.each([
 			try {
 				await discovery;
 
-				const results = [];
-				const promise = registry.clusterMetrics().then(() => results.push(1));
-				const shutdown = registry.shutdown().then(() => results.push(2));
+				const BaseRegistry = require('../lib/registry');
+				let aggregateCompleted = false;
+				const origAggregate = BaseRegistry.aggregate;
+				const aggregateSpy = jest
+					.spyOn(BaseRegistry, 'aggregate')
+					.mockImplementation((...args) => {
+						const res = origAggregate.apply(BaseRegistry, args);
+						aggregateCompleted = true;
+						return res;
+					});
+
+				let shutdownCompleted = false;
+				const promise = registry.clusterMetrics();
+				const shutdown = registry.shutdown().then(() => {
+					shutdownCompleted = true;
+					expect(aggregateCompleted).toBe(true);
+				});
+
+				// Drain the microtask queue: shutdown must still be waiting for
+				// the outstanding worker response at this point.
+				await new Promise(resolve => setImmediate(resolve));
+				expect(shutdownCompleted).toBe(false);
+				expect(aggregateCompleted).toBe(false);
 
 				cluster.emit('message', worker, {
 					type: GET_METRICS_RES,
@@ -481,7 +633,9 @@ describe.each([
 
 				await Promise.all([promise, shutdown]);
 
-				expect(results).toEqual([1, 2]);
+				expect(shutdownCompleted).toBe(true);
+				expect(aggregateCompleted).toBe(true);
+				expect(aggregateSpy).toHaveBeenCalledTimes(1);
 			} finally {
 				cluster.emit('disconnect', worker);
 				cluster.workers = originalWorkers;
