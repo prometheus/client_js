@@ -121,6 +121,53 @@ describe.each([
 			}
 		});
 
+		it('keeps pending scrapes in their original content types', async () => {
+			const { Histogram } = require('../index');
+			const { decodeMetricFamilies } = require('./helpers/nativeHistogram');
+			const histogram = new Histogram({
+				name: 'pending_native',
+				help: 'Pending native histogram',
+				registers: [],
+				nativeHistogramBucketFactor: 1.1,
+			});
+			histogram.observe(1);
+			const snapshot = await histogram.get();
+			const threadId = 212;
+			const name = `@prometheus-io/client:worker:${threadId}`;
+			const channel = new BroadcastChannel(name).unref();
+			try {
+				announcementChannel.postMessage({ type: ANNOUNCEMENT, name, threadId });
+				for (
+					let attempt = 0;
+					attempt < 100 && AggregatorRegistry.workerCount() === 0;
+					attempt++
+				) {
+					await delay(5);
+				}
+				expect(AggregatorRegistry.workerCount()).toBeGreaterThan(0);
+				announcementChannel.addEventListener('message', event => {
+					if (event.data.type !== GET_METRICS_REQ) return;
+					channel.postMessage({
+						type: GET_METRICS_RES,
+						requestId: event.data.requestId,
+						threadId,
+						metrics: [[snapshot]],
+					});
+				});
+				const text = registry.workerMetrics();
+				registry.setContentType(Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE);
+				const binary = registry.workerMetrics();
+				const [textBody, binaryBody] = await Promise.all([text, binary]);
+				expect(textBody).toContain('pending_native_count 1');
+				const family = decodeMetricFamilies(binaryBody).find(
+					metric => metric.name === 'pending_native',
+				);
+				expect(family.metric[0].histogram.sampleCount).toBe(1);
+			} finally {
+				channel.close();
+			}
+		});
+
 		it('aggregates worker responses in thread id order', async () => {
 			const responders = [1, 2, 3].map(threadId => {
 				const name = `@prometheus-io/client:worker:${threadId}`;
@@ -256,8 +303,25 @@ describe.each([
 			const name = `@prometheus-io/client:worker:0`;
 			const channel = new BroadcastChannel(name).unref();
 
-			const { Gauge } = require('../index');
+			const { Gauge, Histogram } = require('../index');
 			const gauge = new Gauge({ name: 'primary_gauge_test', help: 'test' });
+			const native = new Histogram({
+				name: 'shutdown_native',
+				help: 'test',
+				nativeHistogramBucketFactor: 1.1,
+			});
+			native.observe(2);
+			for (const aggregator of ['firstNative', 'omit']) {
+				new Histogram({
+					name: `shutdown_${aggregator}`,
+					help: 'test',
+					nativeHistogramBucketFactor: 1.1,
+					aggregator,
+					collect() {
+						throw new Error('Shutdown must not collect non-sum metrics');
+					},
+				});
+			}
 
 			gauge.set(0.8675309);
 
@@ -290,7 +354,7 @@ describe.each([
 					WORKER_SCRAPE_FAILURES,
 				);
 				await expect(metrics).resolves.toEqual([
-					[await histogram.get(), expected],
+					[await histogram.get(), expected, await native.get()],
 				]);
 			} finally {
 				channel.close();

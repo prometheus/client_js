@@ -31,7 +31,9 @@ describe('Exemplars', () => {
 				labelNames: ['method', 'code'],
 				enableExemplars: true,
 			});
-		}).toThrow('Exemplars are supported only on OpenMetrics registries');
+		}).toThrow(
+			'Exemplars are supported only on OpenMetrics or Prometheus protobuf registries',
+		);
 	});
 	describe.each([['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE]])(
 		'with %s registry',
