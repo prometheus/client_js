@@ -332,7 +332,7 @@ export type MetricValueWithName<T extends string> = MetricValue<T> & {
 	metricName?: string;
 };
 
-type LabelValues<T extends string> = T extends NoLabelNameType
+type LabelValues<T extends string> = [T] extends [NoLabelNameType]
 	? Partial<Record<string, never>>
 	: Partial<Record<T, string | number>>;
 

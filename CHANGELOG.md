@@ -11,6 +11,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- fix: LabelValues no longer distributes over label-name unions, so `get()` labels keep every declared key (Fixes [#861](https://github.com/prometheus/client_js/issues/861))
 - Update Prettier and lint-staged
 - Organized default metrics
 - perf: Histogram rendering builds its export list straight from the store iterator instead of an intermediate array. Faster at high series counts on Node 24 and 26, can be slightly slower on Node 22

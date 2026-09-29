@@ -14,6 +14,7 @@
 
 import {
 	Counter,
+	Gauge,
 	Pushgateway,
 	Registry,
 	MetricObject,
@@ -107,3 +108,40 @@ async function metricTypeMatchesRuntimeStrings() {
 	void MetricType.Counter;
 }
 void metricTypeMatchesRuntimeStrings;
+
+// LabelValues must not distribute over a label-name union. A naked
+// `T extends never` splits Counter<'method' | 'status'> into a union of
+// one-key objects, so reading labels back from get() keeps only one key
+// (#861). Tuple-wrapping both sides keeps every declared name, and the
+// no-label `never` case still resolves to Partial<Record<string, never>>.
+const twoLabelCounter = new Counter({
+	name: 'typescript_two_label_counter',
+	help: 'TypeScript two-label counter',
+	labelNames: ['method', 'status'] as const,
+	registers: [registry],
+});
+const twoLabelGauge = new Gauge({
+	name: 'typescript_two_label_gauge',
+	help: 'TypeScript two-label gauge',
+	labelNames: ['method', 'status'] as const,
+	registers: [registry],
+});
+
+async function twoLabelGetKeepsBothKeys() {
+	const counterSnapshot = await twoLabelCounter.get();
+	const method: string | number | undefined =
+		counterSnapshot.values[0].labels.method;
+	const status: string | number | undefined =
+		counterSnapshot.values[0].labels.status;
+	void method;
+	void status;
+
+	const gaugeSnapshot = await twoLabelGauge.get();
+	const gaugeMethod: string | number | undefined =
+		gaugeSnapshot.values[0].labels.method;
+	const gaugeStatus: string | number | undefined =
+		gaugeSnapshot.values[0].labels.status;
+	void gaugeMethod;
+	void gaugeStatus;
+}
+void twoLabelGetKeepsBothKeys;
