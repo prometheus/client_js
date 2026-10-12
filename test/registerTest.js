@@ -1106,6 +1106,24 @@ describe('Register', () => {
 			});
 		});
 
+		it.each([null, undefined])(
+			'uses registry defaults for a shared histogram label with value %p',
+			async value => {
+				register.setDefaultLabels({ service: 'frontend' });
+				const histogram = new Histogram({
+					name: 'default_labels',
+					help: 'Default labels',
+					labelNames: ['service'],
+					registers: [register],
+				});
+				histogram.observe({ service: value }, 0.5);
+				const before = await histogram.getForPromString();
+				const labels = { ...before.values[0].sharedLabels };
+				expect(await register.metrics()).toContain('service="frontend"');
+				expect(before.values[0].sharedLabels).toEqual(labels);
+			},
+		);
+
 		function getMetric(name) {
 			name = name || 'test_metric';
 			return {
