@@ -1106,6 +1106,23 @@ describe('Register', () => {
 			});
 		});
 
+		it('does not rename counters shared with another registry when scraped', async () => {
+			const other = new Registry();
+			const counter = new Counter({
+				name: 'shared_requests_total',
+				help: 'Requests',
+				registers: [register, other],
+			});
+			counter.inc();
+			const first = await register.metrics();
+			expect(counter.name).toBe('shared_requests_total');
+			expect(await register.metrics()).toBe(first);
+			expect(await other.metrics()).toContain('shared_requests_total 1');
+			expect(await register.getSingleMetricAsString(counter.name)).toContain(
+				'shared_requests_total 1',
+			);
+		});
+
 		function getMetric(name) {
 			name = name || 'test_metric';
 			return {
