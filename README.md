@@ -407,11 +407,12 @@ enabled. They get a single object with the format
 `{labels, value, exemplarLabels}`.
 
 When using exemplars, the registry used for metrics should be set to OpenMetrics
-type (including the global or default registry if no registries are specified).
+or Prometheus protobuf (including the global or default registry if no registries
+are specified).
 
 ### Registry type
 
-The library supports both the old Prometheus format and the OpenMetrics format.
+The library supports Prometheus text, OpenMetrics text, and Prometheus protobuf.
 The format can be set per registry. For default metrics:
 
 ```js
@@ -429,9 +430,14 @@ this is currently the default registry type.
 **OPENMETRICS_CONTENT_TYPE** - defaults to version 1.0.0 of the
 [OpenMetrics standard](https://github.com/OpenObservability/OpenMetrics/blob/d99b705f611b75fec8f450b05e344e02eea6921d/specification/OpenMetrics.md).
 
+**PROMETHEUS_PROTOBUF_CONTENT_TYPE** - length-delimited Prometheus protobuf.
+`metrics()` returns a `Buffer` for this format; `getMetricsAsString()` and
+`getSingleMetricAsString()` still return Prometheus text.
+
 The HTTP Content-Type string for each registry type is exposed both at module
-level (`prometheusContentType` and `openMetricsContentType`) and as static
-properties on the `Registry` object.
+level (`prometheusContentType`, `openMetricsContentType`, and
+`prometheusProtobufContentType`) and as static properties on the `Registry`
+object.
 
 The `contentType` constant exposed by the module returns the default content
 type when creating a new registry, currently defaults to Prometheus type.

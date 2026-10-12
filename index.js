@@ -33,6 +33,8 @@ Object.defineProperty(exports, 'contentType', {
 });
 exports.prometheusContentType = exports.Registry.PROMETHEUS_CONTENT_TYPE;
 exports.openMetricsContentType = exports.Registry.OPENMETRICS_CONTENT_TYPE;
+exports.prometheusProtobufContentType =
+	exports.Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE;
 exports.validateMetricName = require('./lib/validation').validateMetricName;
 
 exports.Counter = require('./lib/counter');

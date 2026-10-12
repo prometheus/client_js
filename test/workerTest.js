@@ -121,6 +121,52 @@ describe.each([
 			}
 		});
 
+		it('keeps pending scrapes in their original content types', async () => {
+			const { Histogram } = require('../index');
+			const { decodeMetricFamilies } = require('./helpers/protobuf');
+			const histogram = new Histogram({
+				name: 'pending_histogram',
+				help: 'Pending histogram',
+				registers: [],
+			});
+			histogram.observe(1);
+			const snapshot = await histogram.get();
+			const threadId = 212;
+			const name = `@prometheus-io/client:worker:${threadId}`;
+			const channel = new BroadcastChannel(name).unref();
+			try {
+				announcementChannel.postMessage({ type: ANNOUNCEMENT, name, threadId });
+				for (
+					let attempt = 0;
+					attempt < 100 && AggregatorRegistry.workerCount() === 0;
+					attempt++
+				) {
+					await delay(5);
+				}
+				expect(AggregatorRegistry.workerCount()).toBeGreaterThan(0);
+				announcementChannel.addEventListener('message', event => {
+					if (event.data.type !== GET_METRICS_REQ) return;
+					channel.postMessage({
+						type: GET_METRICS_RES,
+						requestId: event.data.requestId,
+						threadId,
+						metrics: [[snapshot]],
+					});
+				});
+				const text = registry.workerMetrics();
+				registry.setContentType(Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE);
+				const binary = registry.workerMetrics();
+				const [textBody, binaryBody] = await Promise.all([text, binary]);
+				expect(textBody).toContain('pending_histogram_count 1');
+				const family = decodeMetricFamilies(binaryBody).find(
+					metric => metric.name === 'pending_histogram',
+				);
+				expect(family.metric[0].histogram.sampleCount).toBe(1);
+			} finally {
+				channel.close();
+			}
+		});
+
 		it('aggregates worker responses in thread id order', async () => {
 			const responders = [1, 2, 3].map(threadId => {
 				const name = `@prometheus-io/client:worker:${threadId}`;

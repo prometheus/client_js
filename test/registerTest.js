@@ -33,6 +33,21 @@ describe('Register', () => {
 		}).toThrow(expectedContentTypeErrStr);
 	});
 
+	it.each([
+		Registry.PROMETHEUS_CONTENT_TYPE,
+		Registry.OPENMETRICS_CONTENT_TYPE,
+		Registry.PROMETHEUS_PROTOBUF_CONTENT_TYPE,
+	])('accepts %s in both the constructor and setter', contentType => {
+		expect(new Registry(contentType).contentType).toBe(contentType);
+		const registry = new Registry();
+		expect(registry.setContentType(contentType)).toBe(registry);
+		expect(registry.contentType).toBe(contentType);
+		expect(() => registry.setContentType(contentTypeTestStr)).toThrow(
+			expectedContentTypeErrStr,
+		);
+		expect(registry.contentType).toBe(contentType);
+	});
+
 	describe.each([
 		['Prometheus', Registry.PROMETHEUS_CONTENT_TYPE],
 		['OpenMetrics', Registry.OPENMETRICS_CONTENT_TYPE],

@@ -31,6 +31,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 - Record cluster and worker thread scrape failures in internal histograms,
   including timeouts, worker-reported errors, and failures with no known worker errors.
+- Prometheus protobuf registries for classic metrics, with public
+  content-type constants and TypeScript support for binary output.
 
 ## [0.16.0] - 2026-08-24
 
