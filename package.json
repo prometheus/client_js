@@ -34,7 +34,7 @@
 	"license": "Apache-2.0",
 	"homepage": "https://github.com/prometheus/client_js",
 	"devDependencies": {
-		"@eslint/js": "^9.29.0",
+		"@eslint/js": "^10.0.1",
 		"eslint": "^10.9.1",
 		"eslint-config-prettier": "^10.1.5",
 		"eslint-plugin-jsdoc": "^64.2.1",
