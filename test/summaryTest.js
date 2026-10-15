@@ -487,6 +487,115 @@ describe.each([
 					});
 				});
 			});
+
+			describe('zero', () => {
+				beforeEach(() => {
+					globalRegistry.clear();
+					instance = new Summary({
+						name: 'summary_labels',
+						help: 'Summary with labels fn',
+						labelNames: ['method'],
+					});
+				});
+
+				it('should zero the given label', async () => {
+					instance.zero({ method: 'POST' });
+					const values = getValuesByLabel(
+						'POST',
+						(await instance.get()).values,
+						'method',
+					);
+					expect(values).not.toHaveLength(0);
+					values.forEach(val => {
+						expect(val.value).toEqual(0);
+					});
+
+					const sumValues = getValuesByName('summary_labels_sum', values);
+					expect(sumValues).toHaveLength(1);
+					expect(sumValues[0].value).toEqual(0);
+
+					const countValues = getValuesByName('summary_labels_count', values);
+					expect(countValues).toHaveLength(1);
+					expect(countValues[0].value).toEqual(0);
+				});
+
+				it('should export the metric after zeroing', async () => {
+					instance.zero({ method: 'POST' });
+					const values = getValuesByLabel(
+						'POST',
+						(await instance.get()).values,
+						'method',
+					);
+					expect(values).not.toHaveLength(0);
+				});
+
+				it('should not duplicate the metric', async () => {
+					instance.zero({ method: 'POST' });
+					instance.observe({ method: 'POST' }, 1);
+					const values = getValuesByName(
+						'summary_labels_count',
+						(await instance.get()).values,
+					);
+					expect(values).toHaveLength(1);
+					expect(values[0].value).toEqual(1);
+
+					const sumValues = getValuesByName(
+						'summary_labels_sum',
+						(await instance.get()).values,
+					);
+					expect(sumValues).toHaveLength(1);
+					expect(sumValues[0].value).toEqual(1);
+				});
+
+				it('should reset the label combination if zero is called after observe', async () => {
+					instance.observe({ method: 'POST' }, 50);
+					let countValues = getValuesByName(
+						'summary_labels_count',
+						(await instance.get()).values,
+					);
+					expect(countValues[0].value).toEqual(1);
+
+					instance.zero({ method: 'POST' });
+					const values = getValuesByLabel(
+						'POST',
+						(await instance.get()).values,
+						'method',
+					);
+					values.forEach(val => {
+						expect(val.value).toEqual(0);
+					});
+
+					countValues = getValuesByName('summary_labels_count', values);
+					expect(countValues[0].value).toEqual(0);
+
+					const sumValues = getValuesByName('summary_labels_sum', values);
+					expect(sumValues[0].value).toEqual(0);
+				});
+
+				it('should throw error when invalid label names are provided', () => {
+					expect(() => {
+						instance.zero({ invalid_label: 'POST' });
+					}).toThrow(/not included in initial labelset/);
+				});
+
+				function getValuesByName(name, values) {
+					return values.reduce((acc, val) => {
+						if (val.metricName === name) {
+							acc.push(val);
+						}
+						return acc;
+					}, []);
+				}
+
+				function getValuesByLabel(label, values, key) {
+					return values.reduce((acc, val) => {
+						if (val.labels && val.labels[key] === label) {
+							acc.push(val);
+						}
+						return acc;
+					}, []);
+				}
+			});
 		});
 	});
 	describe('without registry', () => {

@@ -756,6 +756,11 @@ export class Summary<T extends string = NoLabelNameType> {
 	reset(): void;
 
 	/**
+	 * Initialize the metrics for the given combination of labels to zero
+	 */
+	zero(labels: LabelValues<T>): void;
+
+	/**
 	 * Return the child for given labels
 	 * @param values Label values
 	 * @returns Configured summary with given labels
