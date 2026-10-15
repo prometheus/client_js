@@ -195,6 +195,25 @@ export class ClusterRegistry<
 	clusterMetrics(): Promise<string>;
 
 	/**
+	 * Gets aggregated metrics as objects for all workers.
+	 * @returns {Promise<MetricObjectWithValues<MetricValue<string>>[]>} Promise that resolves with the aggregated
+	 * metrics as objects.
+	 */
+	getClusterMetricsAsJSON(): Promise<
+		MetricObjectWithValues<MetricValue<string>>[]
+	>;
+
+	/**
+	 * Gets aggregated metrics as objects for all workers.
+	 * @param aggregator Filter by aggregator type
+	 * @returns {Promise<MetricObjectWithValues<MetricValue<string>>[]>} Promise that resolves with the aggregated
+	 * metrics as objects.
+	 */
+	getClusterMetricsAsJSON(
+		aggregator: string,
+	): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
+
+	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
 	 * use a registry/registries other than the default global registry.
 	 * @param {Array<Registry>|Registry} regs Registry or registries to be
@@ -259,6 +278,25 @@ export class AggregatorRegistry<
 	 * metrics.
 	 */
 	clusterMetrics(): Promise<string>;
+
+	/**
+	 * Gets aggregated metrics as objects for all workers.
+	 * @returns {Promise<MetricObjectWithValues<MetricValue<string>>[]>} Promise that resolves with the aggregated
+	 * metrics as objects.
+	 */
+	getClusterMetricsAsJSON(): Promise<
+		MetricObjectWithValues<MetricValue<string>>[]
+	>;
+
+	/**
+	 * Gets aggregated metrics as objects for all workers.
+	 * @param aggregator Filter by aggregator type
+	 * @returns {Promise<MetricObjectWithValues<MetricValue<string>>[]>} Promise that resolves with the aggregated
+	 * metrics as objects.
+	 */
+	getClusterMetricsAsJSON(
+		aggregator: string,
+	): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
 
 	/**
 	 * Orderly shutdown of the registry.
