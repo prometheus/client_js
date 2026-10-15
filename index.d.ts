@@ -894,6 +894,22 @@ export function exponentialBuckets(
 	count: number,
 ): number[];
 
+type AvailableDefaultMetrics =
+	| 'processCpuTotal'
+	| 'processStartTime'
+	| 'osMemoryHeap'
+	| 'processOpenFileDescriptors'
+	| 'processMaxFileDescriptors'
+	| 'eventLoopLag'
+	| 'eventLoopUtilization'
+	| 'processResources'
+	| 'processHandles'
+	| 'processRequests'
+	| 'heapSizeAndUsed'
+	| 'heapSpacesSizeAndUsed'
+	| 'version'
+	| 'gc';
+
 export interface DefaultMetricsCollectorConfiguration<
 	T extends RegistryContentType,
 > {
@@ -907,6 +923,7 @@ export interface DefaultMetricsCollectorConfiguration<
 	eventLoopUtilizationAgeBuckets?: number;
 	eventLoopUtilizationMaxAgeSeconds?: number;
 	labels?: object;
+	exclude?: AvailableDefaultMetrics[];
 }
 
 export const collectDefaultMetrics: {
@@ -918,7 +935,7 @@ export const collectDefaultMetrics: {
 		config?: DefaultMetricsCollectorConfiguration<T>,
 	): void;
 	/** All available default metrics */
-	metricsList: string[];
+	metricsList: AvailableDefaultMetrics[];
 };
 
 /**
