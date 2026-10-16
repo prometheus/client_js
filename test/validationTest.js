@@ -24,6 +24,14 @@ describe('validation', () => {
 			}).not.toThrow();
 		});
 
+		it('should ignore inherited enumerable properties', () => {
+			const labels = Object.create({ injected: null });
+
+			expect(() => {
+				validateLabel(['exists'], labels);
+			}).not.toThrow();
+		});
+
 		it('should throw on unknown label', () => {
 			expect(() => {
 				validateLabel(['exists'], { somethingElse: null });
