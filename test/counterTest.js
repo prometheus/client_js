@@ -117,6 +117,75 @@ describe.each([
 				const values = (await instance.get()).values;
 				expect(values[0].value).toEqual(100);
 			});
+
+			it('should share a series between saved children and direct increments', async () => {
+				const first = instance.labels('GET', '/test');
+				const second = instance.labels('GET', '/test');
+				expect((await instance.get()).values).toEqual([]);
+				first.inc();
+				second.inc(2);
+				instance.inc({ method: 'GET', endpoint: '/test' }, 3);
+				first.inc(0);
+				second.inc(0.5);
+				first.inc();
+				expect((await instance.get()).values).toEqual([
+					{ labels: { method: 'GET', endpoint: '/test' }, value: 7.5 },
+				]);
+			});
+
+			it.each(['reset', 'remove'])(
+				'should reuse a saved child after %s',
+				async operation => {
+					const child = instance.labels('GET', '/test');
+					child.inc(10);
+					child.inc();
+					if (operation === 'reset') {
+						instance.reset();
+					} else {
+						instance.remove('GET', '/test');
+					}
+					expect((await instance.get()).values).toEqual([]);
+					child.inc(2);
+					child.inc(3);
+					expect((await instance.get()).values).toEqual([
+						{ labels: { method: 'GET', endpoint: '/test' }, value: 5 },
+					]);
+				},
+			);
+
+			it('should use a recreated series after removal', async () => {
+				const child = instance.labels('GET', '/test');
+				child.inc(10);
+				instance.remove({ method: 'GET', endpoint: '/test' });
+				instance.inc({ method: 'GET', endpoint: '/test' }, 4);
+				child.inc(2);
+				child.inc(3);
+				expect((await instance.get()).values[0].value).toEqual(9);
+			});
+
+			it('should keep observing changes to object-form labels', async () => {
+				const labels = { method: 'GET', endpoint: '/test' };
+				const child = instance.labels(labels);
+				child.inc();
+				labels.method = 'POST';
+				child.inc(2);
+				labels.unexpected = 'label';
+				expect(() => child.inc()).toThrow();
+				expect((await instance.get()).values).toEqual([
+					{ labels: { method: 'GET', endpoint: '/test' }, value: 1 },
+					{ labels: { method: 'POST', endpoint: '/test' }, value: 2 },
+				]);
+			});
+
+			it.each([-1, Infinity, -Infinity, 'invalid'])(
+				'should reject %p before and after warming a saved child',
+				value => {
+					const child = instance.labels('GET', '/test');
+					expect(() => child.inc(value)).toThrow();
+					child.inc();
+					expect(() => child.inc(value)).toThrow();
+				},
+			);
 		});
 	});
 
@@ -223,6 +292,16 @@ describe.each([
 
 			instance.inc(10);
 			expect((await instance.get()).values[0].value).toEqual(10);
+		});
+		it('should reuse a saved labelless child after reset', async () => {
+			const counter = new Counter({ name: 'test_metric', help: 'test' });
+			const child = counter.labels();
+			child.inc(12);
+			counter.reset();
+			expect((await counter.get()).values[0].value).toEqual(0);
+			child.inc(2);
+			child.inc(3);
+			expect((await counter.get()).values[0].value).toEqual(5);
 		});
 		it('should reset the counter, incl labels', async () => {
 			const instance = new Counter({
