@@ -54,6 +54,32 @@ function setupCounterSuite(suite) {
 		),
 		{ teardown, setup: setup(3) },
 	);
+
+	for (const labelCount of [0, 1, 3]) {
+		const options = {
+			teardown,
+			setup: client => {
+				const context = setup(labelCount)(client);
+				const values = Array(labelCount).fill('value');
+				const labels = Object.fromEntries(
+					getLabelNames(labelCount).map((name, i) => [name, values[i]]),
+				);
+				const child = context.Counter.labels(...values);
+				child.inc(0);
+				return { ...context, labels, child };
+			},
+		};
+		suite.add(
+			`inc fixed series (${labelCount} labels)`,
+			(client, { Counter, labels }) => Counter.inc(labels, 1),
+			options,
+		);
+		suite.add(
+			`inc saved child (${labelCount} labels)`,
+			(client, { child }) => child.inc(1),
+			options,
+		);
+	}
 }
 
 function setup(labelCount) {

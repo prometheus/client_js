@@ -150,6 +150,24 @@ describe('utils', () => {
 		});
 
 		describe('setDelta()', () => {
+			it.each([{}, { a: 'value' }])(
+				'can reuse a precomputed key for %p',
+				labels => {
+					const map = new LabelMap(['a']);
+					const key = map.keyFrom(labels);
+					map.setDelta(labels, 2, key).setDelta(labels, 3, key);
+					expect(map.get(labels)).toEqual(5);
+					map.remove(labels);
+					map.setDelta(labels, 4, key);
+					expect(map.get(labels)).toEqual(4);
+					map.clear();
+					map.setDelta(labels, 6, key);
+					expect(Array.from(map.values())).toStrictEqual([
+						{ labels, value: 6 },
+					]);
+				},
+			);
+
 			it('can create new records', () => {
 				const map = new LabelMap(['b', 'c', 'a']);
 
