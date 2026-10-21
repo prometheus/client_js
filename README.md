@@ -103,6 +103,11 @@ collectDefaultMetrics();
 All metric types have two mandatory parameters: `name` and `help`. Refer to
 <https://prometheus.io/docs/practices/naming/> for guidance on naming metrics.
 
+Metric constructors only apply supported configuration options. Unknown options
+are ignored and are not copied onto the metric instance. If a custom collector
+needs additional state, keep it in a closure or assign it to the instance after
+construction.
+
 For metrics based on point-in-time observations (e.g. current memory usage, as
 opposed to HTTP request durations observed continuously in a histogram), you
 should provide a `collect()` function, which will be invoked when Prometheus
