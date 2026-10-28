@@ -33,7 +33,21 @@ Object.defineProperty(exports, 'contentType', {
 });
 exports.prometheusContentType = exports.Registry.PROMETHEUS_CONTENT_TYPE;
 exports.openMetricsContentType = exports.Registry.OPENMETRICS_CONTENT_TYPE;
+exports.openMetrics001ContentType =
+	exports.Registry.OPENMETRICS_0_0_1_CONTENT_TYPE;
+exports.openMetrics20ContentType =
+	exports.Registry.OPENMETRICS_2_0_CONTENT_TYPE;
+exports.openMetrics20RcContentType =
+	exports.Registry.OPENMETRICS_2_0_RC_CONTENT_TYPE;
+exports.negotiateAccept = exports.Registry.negotiate;
+
 exports.validateMetricName = require('./lib/validation').validateMetricName;
+exports.validateLegacyMetricName =
+	require('./lib/validation').validateLegacyMetricName;
+exports.validateLegacyLabelName =
+	require('./lib/validation').validateLegacyLabelName;
+exports.escapeName = require('./lib/validation').escapeName;
+exports.escapeLabelName = require('./lib/validation').escapeLabelName;
 
 exports.Counter = require('./lib/counter');
 exports.Gauge = require('./lib/gauge');

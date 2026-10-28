@@ -21,14 +21,50 @@ import {
 	MetricType,
 	MetricValue,
 	MetricValueWithName,
+	openMetrics20ContentType,
+	openMetrics20RcContentType,
+	openMetrics001ContentType,
+	negotiateAccept,
+	escapeName,
+	escapeLabelName,
+	validateLegacyMetricName,
+	validateLegacyLabelName,
 } from '../index';
 
 const registry = new Registry();
+const om20Registry = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
+const om20RcRegistry = new Registry(Registry.OPENMETRICS_2_0_RC_CONTENT_TYPE);
 const counter = new Counter({
 	name: 'typescript_test_counter',
 	help: 'TypeScript test counter',
-	registers: [registry],
+	unit: 'requests',
+	registers: [registry, om20Registry, om20RcRegistry],
 });
+
+const negotiated: string = negotiateAccept(
+	'application/openmetrics-text;version=2.0.0',
+);
+const negotiatedFromReg: string = registry.negotiate(
+	'application/openmetrics-text;version=2.0.0-rc',
+);
+const metricsWithOptions: Promise<string> = registry.metrics({
+	accept: 'application/openmetrics-text;version=2.0.0',
+	escaping: 'allow-utf-8',
+});
+const escapedMetricName: string = escapeName('a.b', 'dots');
+const escapedLblName: string = escapeLabelName('a.b', 'underscores');
+const isLegacy: boolean = validateLegacyMetricName('a_b');
+const invalidLegacyLabels: string[] = validateLegacyLabelName(['a_b', 'a.b']);
+void openMetrics20ContentType;
+void openMetrics20RcContentType;
+void openMetrics001ContentType;
+void negotiated;
+void negotiatedFromReg;
+void metricsWithOptions;
+void escapedMetricName;
+void escapedLblName;
+void isLegacy;
+void invalidLegacyLabels;
 
 const metricsText: Promise<string> = registry.getMetricsAsString(counter);
 const gatewayWithRegistry = new Pushgateway('http://127.0.0.1:9091', registry);

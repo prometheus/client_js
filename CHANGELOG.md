@@ -26,11 +26,13 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - fix: Non-nullish, non-string label values are coerced to strings when a combination is first stored, so exposition escapes them; the store also keeps its own copy, so mutating the caller's object after recording no longer changes the stored series
 - fix: Label-less summaries report `labels: {}` in `getMetricsAsJSON()`, like other metrics (Fixes [#838](https://github.com/prometheus/client_js/issues/838))
 - chore: update benchmark baseline to v0.16.1
+- Relax default metric and label name validation to allow valid UTF-8 names (exporting `validateLegacyMetricName` and `validateLegacyLabelName` for strict legacy ASCII checks)
 
 ### Added
 
 - Record cluster and worker thread scrape failures in internal histograms,
   including timeouts, worker-reported errors, and failures with no known worker errors.
+- Support OpenMetrics 2.0 (`2.0.0` and `2.0.0-rc`) text exposition, HTTP `Accept` header content negotiation (`Registry.negotiate` / `negotiateAccept`), UTF-8 escaping schemes (`allow-utf-8`, `underscores`, `dots`, `values`), `# UNIT` metadata, composite single-line Histograms and Summaries, inline start timestamps (`st@<timestamp>`), and 2048-rune exemplars
 
 ## [0.16.0] - 2026-08-24
 
