@@ -81,6 +81,36 @@ describe.each([
 					});
 			});
 
+			it('should base64-encode empty grouping values', () => {
+				const mockHttp = nock('http://192.168.99.100:9091')
+					.post('/metrics/job/testJob/first@base64/=/second/value', body)
+					.reply(200);
+
+				return instance
+					.pushAdd({
+						jobName: 'testJob',
+						groupings: { first: '', second: 'value' },
+					})
+					.then(() => {
+						expect(mockHttp.isDone()).toBe(true);
+					});
+			});
+
+			it('should base64-encode grouping values and job names containing a slash', () => {
+				const mockHttp = nock('http://192.168.99.100:9091')
+					.post('/metrics/job@base64/YS9i/path@base64/L3Zhci90bXA', body)
+					.reply(200);
+
+				return instance
+					.pushAdd({
+						jobName: 'a/b',
+						groupings: { path: '/var/tmp' },
+					})
+					.then(() => {
+						expect(mockHttp.isDone()).toBe(true);
+					});
+			});
+
 			it('should throw an error if the push failed', () => {
 				nock('http://192.168.99.100:9091')
 					.post('/metrics/job/testJob/key/value', body)
