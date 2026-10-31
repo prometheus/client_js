@@ -111,6 +111,21 @@ describe.each([
 					});
 			});
 
+			it('should base64-encode dot-segment job names and grouping values', () => {
+				const mockHttp = nock('http://192.168.99.100:9091')
+					.post('/metrics/job@base64/Li4/first@base64/Lg/second/value', body)
+					.reply(200);
+
+				return instance
+					.pushAdd({
+						jobName: '..',
+						groupings: { first: '.', second: 'value' },
+					})
+					.then(() => {
+						expect(mockHttp.isDone()).toBe(true);
+					});
+			});
+
 			it('should throw an error if the push failed', () => {
 				nock('http://192.168.99.100:9091')
 					.post('/metrics/job/testJob/key/value', body)
