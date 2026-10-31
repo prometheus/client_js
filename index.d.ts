@@ -332,7 +332,10 @@ export type MetricValueWithName<T extends string> = MetricValue<T> & {
 	metricName?: string;
 };
 
-type LabelValues<T extends string> = T extends NoLabelNameType
+// The tuple wrapping stops the conditional from distributing over a union of
+// label names, which would turn LabelValues<'a' | 'b'> into a union of
+// single-key objects instead of one object with both keys.
+type LabelValues<T extends string> = [T] extends [NoLabelNameType]
 	? Partial<Record<string, never>>
 	: Partial<Record<T, string | number>>;
 

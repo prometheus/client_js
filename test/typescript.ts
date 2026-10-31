@@ -73,6 +73,28 @@ async function metricObjectTypesAreExported() {
 }
 void metricObjectTypesAreExported;
 
+// LabelValues must not distribute over a union of label names: labels read
+// back from Metric#get() carry every declared key (#861).
+async function labelValuesKeepEveryLabelName() {
+	const labelled = new Counter({
+		name: 'typescript_test_labelled_counter',
+		help: 'TypeScript test counter with labels',
+		labelNames: ['a', 'b'] as const,
+		registers: [registry],
+	});
+	labelled.inc({ a: '1', b: 2 });
+
+	const { values } = await labelled.get();
+	const a: string | number | undefined = values[0].labels.a;
+	const b: string | number | undefined = values[0].labels.b;
+	void a;
+	void b;
+
+	// @ts-expect-error only declared label names are allowed.
+	void values[0].labels.c;
+}
+void labelValuesKeepEveryLabelName;
+
 // MetricType matches the runtime strings reported in metric metadata, so a
 // reported type can be compared against a literal and narrowed without casts.
 // The switch fails to compile if the union and this member list ever drift
