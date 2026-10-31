@@ -301,6 +301,35 @@ describe.each([
 				expect(mockHttp.isDone());
 			});
 		});
+
+		it('should keep the gzip header for pushes after a delete', async () => {
+			const headers = { 'Content-Encoding': 'gzip' };
+			const deleteMock = nock('http://192.168.99.100:9091', {
+				badheaders: ['Content-Encoding'],
+			})
+				.delete('/metrics/job/testJob')
+				.reply(200);
+			const pushMock = nock('http://192.168.99.100:9091', {
+				reqheaders: {
+					'Content-Encoding': 'gzip',
+				},
+			})
+				.post('/metrics/job/testJob', gzipSync(body))
+				.reply(200);
+
+			instance = new Pushgateway(
+				'http://192.168.99.100:9091',
+				{ headers },
+				registry,
+			);
+
+			await instance.delete({ jobName: 'testJob' });
+			await instance.pushAdd({ jobName: 'testJob' });
+
+			expect(deleteMock.isDone()).toBe(true);
+			expect(pushMock.isDone()).toBe(true);
+			expect(headers).toEqual({ 'Content-Encoding': 'gzip' });
+		});
 	};
 
 	describe('global registry', () => {
