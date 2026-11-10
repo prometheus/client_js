@@ -20,6 +20,8 @@ const {
 	Registry,
 	Counter,
 	Gauge,
+	Histogram,
+	Summary,
 	openMetrics001ContentType,
 	openMetricsContentType,
 	openMetrics20ContentType,
@@ -298,6 +300,90 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 			// negotiates consistently with reg.negotiate(undefined)
 			const noAcceptOut = await reg.metrics({ accept: undefined });
 			expect(noAcceptOut).toBe(promOut);
+		});
+	});
+
+	describe('Composite Histogram in OpenMetrics 2.0', () => {
+		it('emits composite histogram values with multiple bucket exemplars', async () => {
+			const reg = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
+			const h = new Histogram({
+				name: 'request_duration_seconds',
+				help: 'Request duration',
+				unit: 'seconds',
+				buckets: [0.1, 0.5, 1],
+				labelNames: ['route'],
+				enableExemplars: true,
+				registers: [reg],
+			});
+
+			h.observe({
+				labels: { route: '/api' },
+				value: 0.05,
+				exemplarLabels: { trace_id: 't1' },
+			});
+			Date.now = jest.fn(() => 1700000001000);
+			h.observe({
+				labels: { route: '/api' },
+				value: 0.4,
+				exemplarLabels: { trace_id: 't2' },
+			});
+			h.observe({
+				labels: { route: '/api' },
+				value: 2.5,
+				exemplarLabels: { trace_id: 't3' },
+			});
+
+			const om20Out = await reg.metrics();
+			expect(om20Out).toBe(
+				[
+					'# HELP request_duration_seconds Request duration',
+					'# TYPE request_duration_seconds histogram',
+					'# UNIT request_duration_seconds seconds',
+					'request_duration_seconds{route="/api"} {count:3,sum:2.95,bucket:[0.1:1,0.5:2,1:2,+Inf:3]} # {trace_id="t1"} 0.05 1700000000.123 # {trace_id="t2"} 0.4 1700000001 # {trace_id="t3"} 2.5 1700000001',
+					'# EOF',
+					'',
+				].join('\n'),
+			);
+		});
+	});
+
+	describe('Composite Summary in OpenMetrics 2.0', () => {
+		it('emits composite summary values with NaN quantiles when count is 0 and observed quantiles when count > 0', async () => {
+			const reg = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
+			const s = new Summary({
+				name: 'payload_size_bytes',
+				help: 'Payload size',
+				unit: 'bytes',
+				percentiles: [0.5, 0.99],
+				registers: [reg],
+			});
+
+			const emptyOut = await reg.metrics();
+			expect(emptyOut).toBe(
+				[
+					'# HELP payload_size_bytes Payload size',
+					'# TYPE payload_size_bytes summary',
+					'# UNIT payload_size_bytes bytes',
+					'payload_size_bytes {count:0,sum:0,quantile:[0.5:NaN,0.99:NaN]}',
+					'# EOF',
+					'',
+				].join('\n'),
+			);
+
+			s.observe(-20);
+			s.observe(-10);
+
+			const observedOut = await reg.metrics();
+			expect(observedOut).toBe(
+				[
+					'# HELP payload_size_bytes Payload size',
+					'# TYPE payload_size_bytes summary',
+					'# UNIT payload_size_bytes bytes',
+					'payload_size_bytes {count:2,sum:-30,quantile:[0.5:-15,0.99:-10]}',
+					'# EOF',
+					'',
+				].join('\n'),
+			);
 		});
 	});
 

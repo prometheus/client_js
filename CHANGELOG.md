@@ -32,6 +32,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - Record cluster and worker thread scrape failures in internal histograms,
   including timeouts, worker-reported errors, and failures with no known worker errors.
 - Support OpenMetrics 2.0 (`2.0.0` and `2.0.0-rc`) Gauge/Counter exposition, `# UNIT` metadata, and HTTP `Accept` header content negotiation (`Registry.negotiate` / `negotiateAccept`) (#868)
+- Support OpenMetrics 2.0 composite single-line Histograms (`{count:...,sum:...,bucket:[...]}`) and Summaries (`{count:...,sum:...,quantile:[...]}`)
 
 ## [0.16.0] - 2026-08-24
 
