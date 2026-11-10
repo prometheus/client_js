@@ -47,10 +47,21 @@ describe.each([
 					expect(instanceValues.name).toStrictEqual(defaultParams.name);
 					expect(instanceValues.help).toStrictEqual(defaultParams.help);
 				});
+
+				it('should allow valid UTF-8 metric and label names', async () => {
+					const instance = new Gauge({
+						name: 'valid utf8 metric.name',
+						help: 'help',
+						labelNames: ['valid utf8.label'],
+					});
+					const instanceValues = await instance.get();
+					expect(instanceValues.name).toStrictEqual('valid utf8 metric.name');
+					expect(instance.labelNames).toStrictEqual(['valid utf8.label']);
+				});
 			});
 
 			describe('un-happy path', () => {
-				const noValidName = 'no valid name';
+				const noValidName = 'no\nvalid\nname';
 				it('should thrown an error due invalid metric name', () => {
 					expect(
 						() => new Gauge({ ...defaultParams, name: noValidName }),

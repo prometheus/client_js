@@ -17,6 +17,8 @@
 
 export type Charset = 'utf-8';
 
+export type EscapingScheme = 'allow-utf-8' | 'underscores' | 'dots' | 'values';
+
 export type PrometheusMIME = 'text/plain';
 export type PrometheusMetricsVersion = '0.0.4';
 
@@ -28,8 +30,16 @@ export type OpenMetricsContentType =
 export type PrometheusContentType =
 	`${PrometheusMIME}; version=${PrometheusMetricsVersion}; charset=${Charset}`;
 
-export type RegistryContentType =
+export type BaseRegistryContentType =
 	PrometheusContentType | OpenMetricsContentType;
+
+export type RegistryContentType =
+	| BaseRegistryContentType
+	| `${BaseRegistryContentType}; escaping=${EscapingScheme}`;
+
+export interface MetricsExpositionOptions {
+	escaping?: EscapingScheme;
+}
 
 /**
  * Container for all registered metrics
@@ -40,12 +50,12 @@ export class Registry<
 	/**
 	 * @param regContentType The content type of the registry
 	 */
-	constructor(regContentType?: RegistryContentType);
+	constructor(regContentType?: BoundRegistryContentType);
 
 	/**
 	 * Get string representation for all metrics
 	 */
-	metrics(): Promise<string>;
+	metrics(options?: MetricsExpositionOptions): Promise<string>;
 
 	/**
 	 * Remove all metrics from the registry
@@ -80,7 +90,10 @@ export class Registry<
 	 * Get string representation for a metric
 	 * @param metric Metric to convert to a string
 	 */
-	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
+	getMetricsAsString<T extends string>(
+		metric: Metric<T>,
+		options?: MetricsExpositionOptions,
+	): Promise<string>;
 
 	/**
 	 * Get all metrics as objects
@@ -116,21 +129,22 @@ export class Registry<
 	 * Get a string representation of a single metric by name
 	 * @param name The name of the metric
 	 */
-	getSingleMetricAsString(name: string): Promise<string>;
+	getSingleMetricAsString(
+		name: string,
+		options?: MetricsExpositionOptions,
+	): Promise<string>;
 
 	/**
 	 * Gets the Content-Type of the metrics for use in the response headers.
 	 */
-	readonly contentType: PrometheusContentType | OpenMetricsContentType;
+	readonly contentType: BoundRegistryContentType;
 
 	/**
 	 * Set the content type of a registry. Used to change between Prometheus and
 	 * OpenMetrics versions.
 	 * @param contentType The type of the registry
 	 */
-	setContentType(
-		contentType: PrometheusContentType | OpenMetricsContentType,
-	): void;
+	setContentType(contentType: BoundRegistryContentType): void;
 
 	/**
 	 * Merge registers
@@ -147,8 +161,9 @@ export class Registry<
 	 *   `registry.getMetricsAsJSON()`.
 	 * @returns {Registry} aggregated registry.
 	 */
-	static aggregate<T extends RegistryContentType>(
+	static aggregate<T extends RegistryContentType = PrometheusContentType>(
 		metricsArr: Array<object>,
+		registryType?: T,
 	): Registry<T>; // TODO Promise?
 
 	/**
@@ -202,12 +217,7 @@ export class ClusterRegistry<
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Array<Registry<RegistryContentType>> | Registry<RegistryContentType>,
 	): void;
 }
 
@@ -238,12 +248,7 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Array<Registry<RegistryContentType>> | Registry<RegistryContentType>,
 	): void;
 }
 
@@ -279,12 +284,7 @@ export class AggregatorRegistry<
 	 * @returns {void}
 	 */
 	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
+		regs: Array<Registry<RegistryContentType>> | Registry<RegistryContentType>,
 	): void;
 }
 
@@ -340,9 +340,7 @@ interface MetricConfiguration<T extends string> {
 	name: string;
 	help: string;
 	labelNames?: T[] | readonly T[];
-	registers?: (
-		Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-	)[];
+	registers?: Registry<RegistryContentType>[];
 	aggregator?: Aggregator;
 	collect?: CollectFunction<any>;
 	enableExemplars?: boolean;
@@ -922,8 +920,36 @@ export const collectDefaultMetrics: {
 };
 
 /**
- * Validate a metric name.
+ * Validate a metric name (UTF-8 aware).
  * @param name The name to validate
  * @returns True if the metric name is valid, false if not
  */
 export function validateMetricName(name: string): boolean;
+
+/**
+ * Validate a legacy ASCII metric name (`^[a-zA-Z_:][a-zA-Z0-9_:]*$`).
+ * @param name The name to validate
+ * @returns True if the metric name is valid under legacy rules, false if not
+ */
+export function validateLegacyMetricName(name: string): boolean;
+
+/**
+ * Validate an array of label names against legacy ASCII rules (`^[a-zA-Z_][a-zA-Z0-9_]*$`).
+ * @param names The label names to validate
+ * @returns An array of label names that are invalid under legacy ASCII rules
+ */
+export function validateLegacyLabelName(names?: string[]): string[];
+
+/**
+ * Escape a metric or label name according to the requested escaping scheme.
+ */
+export function escapeName(
+	name: string,
+	scheme?: EscapingScheme,
+	isLabel?: boolean,
+): string;
+
+/**
+ * Escape a label name according to the requested escaping scheme.
+ */
+export function escapeLabelName(name: string, scheme?: EscapingScheme): string;

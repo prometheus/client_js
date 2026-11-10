@@ -26,6 +26,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - fix: Non-nullish, non-string label values are coerced to strings when a combination is first stored, so exposition escapes them; the store also keeps its own copy, so mutating the caller's object after recording no longer changes the stored series
 - fix: Label-less summaries report `labels: {}` in `getMetricsAsJSON()`, like other metrics (Fixes [#838](https://github.com/prometheus/client_js/issues/838))
 - chore: update benchmark baseline to v0.16.1
+- feat: Relax default metric and label name validation to allow valid UTF-8 names (exporting `validateLegacyMetricName` and `validateLegacyLabelName` for strict legacy ASCII checks) and support `allow-utf-8`, `underscores`, `dots`, and `values` escaping schemes (#873)
 
 ### Added
 

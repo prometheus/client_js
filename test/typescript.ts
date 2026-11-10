@@ -21,14 +21,42 @@ import {
 	MetricType,
 	MetricValue,
 	MetricValueWithName,
+	escapeName,
+	escapeLabelName,
+	validateLegacyMetricName,
+	validateLegacyLabelName,
 } from '../index';
 
 const registry = new Registry();
+const utf8Registry = new Registry(
+	'text/plain; version=0.0.4; charset=utf-8; escaping=allow-utf-8',
+);
+utf8Registry.setContentType(
+	'text/plain; version=0.0.4; charset=utf-8; escaping=allow-utf-8',
+);
 const counter = new Counter({
 	name: 'typescript_test_counter',
 	help: 'TypeScript test counter',
-	registers: [registry],
+	registers: [registry, utf8Registry],
 });
+const aggregatedUtf8 = Registry.aggregate(
+	[],
+	'text/plain; version=0.0.4; charset=utf-8; escaping=allow-utf-8',
+);
+void aggregatedUtf8;
+
+const escapedMetricName: string = escapeName('a.b', 'dots');
+const escapedLblName: string = escapeLabelName('a.b', 'underscores');
+const isLegacy: boolean = validateLegacyMetricName('a_b');
+const invalidLegacyLabels: string[] = validateLegacyLabelName(['a_b', 'a.b']);
+const metricsWithEscaping: Promise<string> = registry.metrics({
+	escaping: 'allow-utf-8',
+});
+void escapedMetricName;
+void escapedLblName;
+void isLegacy;
+void invalidLegacyLabels;
+void metricsWithEscaping;
 
 const metricsText: Promise<string> = registry.getMetricsAsString(counter);
 const gatewayWithRegistry = new Pushgateway('http://127.0.0.1:9091', registry);
