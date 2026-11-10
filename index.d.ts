@@ -17,19 +17,51 @@
 
 export type Charset = 'utf-8';
 
+export type EscapingScheme = 'allow-utf-8' | 'underscores' | 'dots' | 'values';
+
 export type PrometheusMIME = 'text/plain';
 export type PrometheusMetricsVersion = '0.0.4';
 
 export type OpenMetricsMIME = 'application/openmetrics-text';
-export type OpenMetricsVersion = '1.0.0';
+export type OpenMetrics001Version = '0.0.1';
+export type OpenMetrics10Version = '1.0.0';
+export type OpenMetrics20Version = '2.0.0';
+export type OpenMetrics20RcVersion = '2.0.0-rc';
+export type OpenMetricsVersion =
+	| OpenMetrics001Version
+	| OpenMetrics10Version
+	| OpenMetrics20Version
+	| OpenMetrics20RcVersion;
 
+export type OpenMetrics001ContentType =
+	`${OpenMetricsMIME}; version=${OpenMetrics001Version}; charset=${Charset}`;
+export type OpenMetrics10ContentType =
+	`${OpenMetricsMIME}; version=${OpenMetrics10Version}; charset=${Charset}`;
+export type OpenMetrics20ContentType =
+	`${OpenMetricsMIME}; version=${OpenMetrics20Version}; charset=${Charset}`;
+export type OpenMetrics20RcContentType =
+	`${OpenMetricsMIME}; version=${OpenMetrics20RcVersion}; charset=${Charset}`;
 export type OpenMetricsContentType =
-	`${OpenMetricsMIME}; version=${OpenMetricsVersion}; charset=${Charset}`;
+	| OpenMetrics001ContentType
+	| OpenMetrics10ContentType
+	| OpenMetrics20ContentType
+	| OpenMetrics20RcContentType;
 export type PrometheusContentType =
 	`${PrometheusMIME}; version=${PrometheusMetricsVersion}; charset=${Charset}`;
 
-export type RegistryContentType =
+export type BaseRegistryContentType =
 	PrometheusContentType | OpenMetricsContentType;
+
+export type RegistryContentType =
+	| BaseRegistryContentType
+	| `${BaseRegistryContentType}; escaping=${EscapingScheme}`;
+
+export interface MetricsExpositionOptions {
+	contentType?: RegistryContentType;
+	accept?: string;
+	acceptedFormats?: BaseRegistryContentType[];
+	escaping?: EscapingScheme;
+}
 
 /**
  * Container for all registered metrics
@@ -40,12 +72,14 @@ export class Registry<
 	/**
 	 * @param regContentType The content type of the registry
 	 */
-	constructor(regContentType?: RegistryContentType);
+	constructor(regContentType?: BoundRegistryContentType);
 
 	/**
 	 * Get string representation for all metrics
 	 */
-	metrics(): Promise<string>;
+	metrics(
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
 
 	/**
 	 * Remove all metrics from the registry
@@ -79,8 +113,12 @@ export class Registry<
 	/**
 	 * Get string representation for a metric
 	 * @param metric Metric to convert to a string
+	 * @param options Optional exposition format options
 	 */
-	getMetricsAsString<T extends string>(metric: Metric<T>): Promise<string>;
+	getMetricsAsString<T extends string>(
+		metric: Metric<T>,
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
 
 	/**
 	 * Get all metrics as objects
@@ -115,22 +153,44 @@ export class Registry<
 	/**
 	 * Get a string representation of a single metric by name
 	 * @param name The name of the metric
+	 * @param options Optional exposition format options
 	 */
-	getSingleMetricAsString(name: string): Promise<string>;
+	getSingleMetricAsString(
+		name: string,
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
+
+	/**
+	 * Negotiate an exposition Content-Type from an HTTP Accept header.
+	 * @param acceptHeader HTTP Accept header value
+	 * @param acceptedFormats Optional list of accepted base formats
+	 */
+	negotiate(
+		acceptHeader?: string,
+		acceptedFormats?: BaseRegistryContentType[],
+	): RegistryContentType;
 
 	/**
 	 * Gets the Content-Type of the metrics for use in the response headers.
 	 */
-	readonly contentType: PrometheusContentType | OpenMetricsContentType;
+	readonly contentType: BoundRegistryContentType;
 
 	/**
 	 * Set the content type of a registry. Used to change between Prometheus and
 	 * OpenMetrics versions.
 	 * @param contentType The type of the registry
 	 */
-	setContentType(
-		contentType: PrometheusContentType | OpenMetricsContentType,
-	): void;
+	setContentType(contentType: BoundRegistryContentType): void;
+
+	/**
+	 * Negotiate an exposition Content-Type from an HTTP Accept header.
+	 * @param acceptHeader HTTP Accept header value
+	 * @param acceptedFormats Optional list of accepted base formats
+	 */
+	static negotiate(
+		acceptHeader?: string,
+		acceptedFormats?: BaseRegistryContentType[],
+	): RegistryContentType;
 
 	/**
 	 * Merge registers
@@ -147,8 +207,9 @@ export class Registry<
 	 *   `registry.getMetricsAsJSON()`.
 	 * @returns {Registry} aggregated registry.
 	 */
-	static aggregate<T extends RegistryContentType>(
+	static aggregate<T extends RegistryContentType = PrometheusContentType>(
 		metricsArr: Array<object>,
+		registryType?: T,
 	): Registry<T>; // TODO Promise?
 
 	/**
@@ -157,9 +218,24 @@ export class Registry<
 	static PROMETHEUS_CONTENT_TYPE: PrometheusContentType;
 
 	/**
-	 * HTTP OpenMetrics Content-Type for metrics response headers.
+	 * HTTP OpenMetrics 0.0.1 Content-Type for metrics response headers.
 	 */
-	static OPENMETRICS_CONTENT_TYPE: OpenMetricsContentType;
+	static OPENMETRICS_0_0_1_CONTENT_TYPE: OpenMetrics001ContentType;
+
+	/**
+	 * HTTP OpenMetrics 1.0.0 Content-Type for metrics response headers.
+	 */
+	static OPENMETRICS_CONTENT_TYPE: OpenMetrics10ContentType;
+
+	/**
+	 * HTTP OpenMetrics 2.0.0 Content-Type for metrics response headers.
+	 */
+	static OPENMETRICS_2_0_CONTENT_TYPE: OpenMetrics20ContentType;
+
+	/**
+	 * HTTP OpenMetrics 2.0.0-rc Content-Type for metrics response headers.
+	 */
+	static OPENMETRICS_2_0_RC_CONTENT_TYPE: OpenMetrics20RcContentType;
 }
 export type Collector = () => void;
 
@@ -180,9 +256,32 @@ export const contentType: RegistryContentType;
 export const prometheusContentType: PrometheusContentType;
 
 /**
- * HTTP OpenMetrics Content-Type for metrics response headers.
+ * HTTP OpenMetrics 1.0.0 Content-Type for metrics response headers.
  */
-export const openMetricsContentType: OpenMetricsContentType;
+export const openMetricsContentType: OpenMetrics10ContentType;
+
+/**
+ * HTTP OpenMetrics 0.0.1 Content-Type for metrics response headers.
+ */
+export const openMetrics001ContentType: OpenMetrics001ContentType;
+
+/**
+ * HTTP OpenMetrics 2.0.0 Content-Type for metrics response headers.
+ */
+export const openMetrics20ContentType: OpenMetrics20ContentType;
+
+/**
+ * HTTP OpenMetrics 2.0.0-rc Content-Type for metrics response headers.
+ */
+export const openMetrics20RcContentType: OpenMetrics20RcContentType;
+
+/**
+ * Negotiate an exposition Content-Type from an HTTP Accept header.
+ */
+export function negotiateAccept(
+	acceptHeader?: string,
+	acceptedFormats?: BaseRegistryContentType[],
+): RegistryContentType;
 
 export class ClusterRegistry<
 	T extends RegistryContentType,
@@ -192,7 +291,9 @@ export class ClusterRegistry<
 	 * @returns {Promise<string>} Promise that resolves with the aggregated
 	 * metrics.
 	 */
-	clusterMetrics(): Promise<string>;
+	clusterMetrics(
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
 
 	/**
 	 * Sets the registry or registries to be aggregated. Call from workers to
@@ -201,14 +302,7 @@ export class ClusterRegistry<
 	 *   aggregated.
 	 * @returns {void}
 	 */
-	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
-	): void;
+	static setRegistries(regs: Array<Registry<any>> | Registry<any>): void;
 }
 
 export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
@@ -217,7 +311,9 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	 * @returns {Promise<string>} Promise that resolves with the aggregated
 	 * metrics.
 	 */
-	workerMetrics(): Promise<string>;
+	workerMetrics(
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
 
 	/**
 	 * Orderly shutdown of the registry.
@@ -237,14 +333,7 @@ export class WorkerRegistry<T extends RegistryContentType> extends Registry<T> {
 	 *   aggregated.
 	 * @returns {void}
 	 */
-	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
-	): void;
+	static setRegistries(regs: Array<Registry<any>> | Registry<any>): void;
 }
 
 /**
@@ -258,7 +347,9 @@ export class AggregatorRegistry<
 	 * @returns {Promise<string>} Promise that resolves with the aggregated
 	 * metrics.
 	 */
-	clusterMetrics(): Promise<string>;
+	clusterMetrics(
+		options?: MetricsExpositionOptions | RegistryContentType,
+	): Promise<string>;
 
 	/**
 	 * Orderly shutdown of the registry.
@@ -278,14 +369,7 @@ export class AggregatorRegistry<
 	 *   aggregated.
 	 * @returns {void}
 	 */
-	static setRegistries(
-		regs:
-			| Array<
-					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-			  >
-			| Registry<PrometheusContentType>
-			| Registry<OpenMetricsContentType>,
-	): void;
+	static setRegistries(regs: Array<Registry<any>> | Registry<any>): void;
 }
 
 type NoLabelNameType = never;
@@ -313,6 +397,7 @@ export interface MetricObject {
 	name: string;
 	help: string;
 	type: MetricType;
+	unit?: string;
 	aggregator: Aggregator;
 	collect: CollectFunction<any>;
 }
@@ -339,10 +424,9 @@ type LabelValues<T extends string> = T extends NoLabelNameType
 interface MetricConfiguration<T extends string> {
 	name: string;
 	help: string;
+	unit?: string;
 	labelNames?: T[] | readonly T[];
-	registers?: (
-		Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
-	)[];
+	registers?: Registry<any>[];
 	aggregator?: Aggregator;
 	collect?: CollectFunction<any>;
 	enableExemplars?: boolean;
