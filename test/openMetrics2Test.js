@@ -179,6 +179,7 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 				name: 'events_processed',
 				help: 'Events processed',
 				unit: 'events',
+				enableExemplars: true,
 				registers: [reg],
 			});
 			const cWithSuffix = new Counter({
@@ -190,7 +191,10 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 			});
 
 			Date.now = jest.fn(() => 1700000005500);
-			cNoSuffix.inc(3);
+			cNoSuffix.inc({
+				value: 3,
+				exemplarLabels: {},
+			});
 			cWithSuffix.inc({
 				labels: { method: 'GET' },
 				value: 5,
@@ -203,10 +207,10 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 					'# HELP events_processed Events processed',
 					'# TYPE events_processed counter',
 					'# UNIT events_processed events',
-					'events_processed 3',
+					'events_processed 3 st@1700000000.123 # {} 3 1700000005.5',
 					'# HELP http_requests_total HTTP requests',
 					'# TYPE http_requests_total counter',
-					'http_requests_total{method="GET"} 5 # {trace_id="abc123"} 5 1700000005.5',
+					'http_requests_total{method="GET"} 5 st@1700000005.5 # {trace_id="abc123"} 5 1700000005.5',
 					'# EOF',
 					'',
 				].join('\n'),
@@ -231,6 +235,53 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 			);
 
 			expect(cWithSuffix.name).toBe('http_requests_total');
+		});
+
+		it('allows exemplars up to 2048 runes on OpenMetrics 2.0 registries and truncates to 128 runes when scraped as OpenMetrics 1.0', async () => {
+			const reg = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
+			const c = new Counter({
+				name: 'counter_truncated_exemplar_test_total',
+				help: 'help',
+				enableExemplars: true,
+				registers: [reg],
+			});
+
+			c.inc({
+				value: 1,
+				exemplarLabels: {
+					extra_long_label: 'x'.repeat(120),
+					span_id: 'span1234',
+					trace_id: 'trace1234',
+				},
+			});
+
+			const om2Output = await reg.metrics();
+			expect(om2Output).toContain('extra_long_label=');
+			expect(om2Output).toContain('trace_id="trace1234"');
+			expect(om2Output).toContain('span_id="span1234"');
+
+			const om1Output = await reg.metrics({
+				contentType: Registry.OPENMETRICS_CONTENT_TYPE,
+			});
+			expect(om1Output).toContain(
+				'# {trace_id="trace1234",span_id="span1234"} 1',
+			);
+			expect(om1Output).not.toContain('extra_long_label');
+
+			const promOutput = await reg.metrics({
+				contentType: Registry.PROMETHEUS_CONTENT_TYPE,
+			});
+			expect(promOutput).not.toContain('trace1234');
+
+			expect(() => {
+				c.inc({
+					value: 1,
+					exemplarLabels: {
+						trace_id: 'j'.repeat(1100),
+						span_id: 'j'.repeat(1100),
+					},
+				});
+			}).toThrow('Label set size must be smaller than 2048 UTF-8 chars');
 		});
 	});
 
@@ -302,10 +353,11 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 	});
 
 	describe('Registry.aggregate with OpenMetrics 2.0', () => {
-		it('preserves unit across aggregated registries', async () => {
+		it('preserves earliest startTimestamp and unit across aggregated registries', async () => {
 			const reg1 = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
 			const reg2 = new Registry(Registry.OPENMETRICS_2_0_CONTENT_TYPE);
 
+			Date.now = jest.fn(() => 1700000010000);
 			const c1 = new Counter({
 				name: 'agg_counter_total',
 				help: 'Aggregated counter',
@@ -314,6 +366,7 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 			});
 			c1.inc(2);
 
+			Date.now = jest.fn(() => 1700000020000);
 			const c2 = new Counter({
 				name: 'agg_counter_total',
 				help: 'Aggregated counter',
@@ -335,7 +388,7 @@ describe('OpenMetrics 2.0 (2.0.0-rc.1) Exposition and Content Negotiation', () =
 					'# HELP agg_counter_total Aggregated counter',
 					'# TYPE agg_counter_total counter',
 					'# UNIT agg_counter_total requests',
-					'agg_counter_total 7',
+					'agg_counter_total 7 st@1700000010',
 					'# EOF',
 					'',
 				].join('\n'),
