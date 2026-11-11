@@ -25,6 +25,7 @@ project adheres to [Semantic Versioning](http://semver.org/).
 - perf: Remove object and array fallback truthiness from core metric paths
 - fix: Non-nullish, non-string label values are coerced to strings when a combination is first stored, so exposition escapes them; the store also keeps its own copy, so mutating the caller's object after recording no longer changes the stored series
 - fix: Label-less summaries report `labels: {}` in `getMetricsAsJSON()`, like other metrics (Fixes [#838](https://github.com/prometheus/client_js/issues/838))
+- fix: Histogram sorts its buckets and drops duplicates, so buckets given out of order no longer report wrong cumulative counts
 - chore: update benchmark baseline to v0.16.1
 
 ### Added
