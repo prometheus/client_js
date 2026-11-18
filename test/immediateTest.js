@@ -46,6 +46,7 @@ function loadWithClock() {
 			immediate: require('../lib/util').immediate,
 			Registry: require('../lib/registry'),
 			Counter: require('../lib/counter'),
+			Histogram: require('../lib/histogram'),
 		};
 	});
 	return { clock, ...modules };
@@ -174,6 +175,32 @@ describe('Registry with pauses', () => {
 
 		jest.spyOn(performance, 'now').mockImplementation(() => (clock.now += 0.9));
 		expect(await registry.metrics()).toEqual(unpaused);
+	});
+
+	it('exports a histogram series once when it is re-added during a pause', async () => {
+		const {
+			clock,
+			Registry: SlicedRegistry,
+			Histogram: SlicedHistogram,
+		} = loadWithClock();
+		const registry = new SlicedRegistry();
+		const histogram = new SlicedHistogram({
+			name: 'h',
+			help: 'h',
+			labelNames: ['user'],
+			registers: [registry],
+		});
+		for (let i = 0; i < 200; i++) histogram.observe({ user: `u${i}` }, 1);
+
+		jest.spyOn(performance, 'now').mockImplementation(() => (clock.now += 0.9));
+		const output = registry.metrics();
+		histogram.remove({ user: 'u150' });
+		histogram.observe({ user: 'u150' }, 1);
+
+		const lines = (await output)
+			.split('\n')
+			.filter(line => line.includes('user="u150"'));
+		expect(lines).toHaveLength(14);
 	});
 
 	it('runs collect() callbacks concurrently', async () => {
