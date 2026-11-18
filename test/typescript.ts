@@ -21,6 +21,8 @@ import {
 	MetricType,
 	MetricValue,
 	MetricValueWithName,
+	PrometheusContentType,
+	RegistryContentType,
 	escapeName,
 	escapeLabelName,
 	validateLegacyMetricName,
@@ -34,6 +36,19 @@ const utf8Registry = new Registry(
 utf8Registry.setContentType(
 	'text/plain; version=0.0.4; charset=utf-8; escaping=allow-utf-8',
 );
+new Registry<PrometheusContentType>().setContentType(
+	Registry.OPENMETRICS_CONTENT_TYPE,
+);
+new Registry(Registry.PROMETHEUS_CONTENT_TYPE).setContentType(
+	Registry.OPENMETRICS_CONTENT_TYPE,
+);
+Registry.aggregate([]).setContentType(Registry.OPENMETRICS_CONTENT_TYPE);
+const mergedUtf8: Registry = Registry.merge([utf8Registry]);
+const bareUtf8Registry: Registry = utf8Registry;
+const registryContentType: RegistryContentType = registry.contentType;
+void mergedUtf8;
+void bareUtf8Registry;
+void registryContentType;
 const counter = new Counter({
 	name: 'typescript_test_counter',
 	help: 'TypeScript test counter',

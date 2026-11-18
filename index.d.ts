@@ -137,14 +137,14 @@ export class Registry<
 	/**
 	 * Gets the Content-Type of the metrics for use in the response headers.
 	 */
-	readonly contentType: BoundRegistryContentType;
+	readonly contentType: RegistryContentType;
 
 	/**
 	 * Set the content type of a registry. Used to change between Prometheus and
 	 * OpenMetrics versions.
 	 * @param contentType The type of the registry
 	 */
-	setContentType(contentType: BoundRegistryContentType): void;
+	setContentType(contentType: RegistryContentType): void;
 
 	/**
 	 * Merge registers
