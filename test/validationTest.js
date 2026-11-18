@@ -209,14 +209,31 @@ describe('validation', () => {
 			);
 
 			const omReg = new Registry(Registry.OPENMETRICS_CONTENT_TYPE);
+			const promReg = new Registry(Registry.PROMETHEUS_CONTENT_TYPE);
 			const c = new Counter({
 				name: 'switch_counter_total',
 				help: 'Switch counter',
-				registers: [omReg],
+				registers: [omReg, promReg],
 			});
 			c.inc(4);
+
+			const singleBeforeMetrics = await omReg.getSingleMetricAsString(
+				'switch_counter_total',
+			);
+			expect(singleBeforeMetrics).toBe(
+				[
+					'# HELP switch_counter Switch counter',
+					'# TYPE switch_counter counter',
+					'switch_counter_total 4',
+				].join('\n'),
+			);
+
 			await omReg.metrics();
 			expect(c.name).toBe('switch_counter_total');
+			expect((await omReg.getMetricsAsJSON())[0].name).toBe(
+				'switch_counter_total',
+			);
+			expect(await promReg.metrics()).toContain('switch_counter_total 4');
 			omReg.setContentType(Registry.PROMETHEUS_CONTENT_TYPE);
 			expect(await omReg.metrics()).toContain('switch_counter_total 4');
 		});
