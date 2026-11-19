@@ -28,17 +28,24 @@ function spin(ms) {
 	while (realPerformance.now() < end);
 }
 
-// Runs forEachPaced over count items and records before which items it paused.
+// Runs forEachPaced over count items and records before which items it
+// paused. Without a pause the items run in one go, so no microtask runs
+// between them.
 async function pausesIn(paced, count, work) {
 	const pausedBefore = [];
-	let next = 0;
+	let awaited = false;
 	await paced(
 		Array.from({ length: count }, (_, i) => i),
 		i => {
-			next = i + 1;
+			if (awaited) {
+				pausedBefore.push(i);
+			}
+			awaited = false;
+			Promise.resolve().then(() => {
+				awaited = true;
+			});
 			work(i);
 		},
-		() => pausedBefore.push(next),
 	);
 	return pausedBefore;
 }
