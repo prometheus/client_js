@@ -14,36 +14,43 @@
 
 'use strict';
 
-const { immediate } = require('../lib/util');
+const { performance: realPerformance } = require('perf_hooks');
+const { forEachPaced } = require('../lib/util');
 const Registry = require('../lib/registry');
 const Counter = require('../lib/counter');
 const Gauge = require('../lib/gauge');
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Keep calling, as a render loop does, until a slice is used up.
-function nextPause(fn = immediate) {
-	for (let i = 0; i < 1e8; i++) {
-		const pause = fn();
-		if (pause !== undefined) return pause;
-	}
-	throw new Error('never paused');
+// Busy work on the real clock, which modern fake timers leave running.
+function spin(ms) {
+	const end = realPerformance.now() + ms;
+	while (realPerformance.now() < end);
 }
 
-function call64(fn) {
-	let result;
-	for (let i = 0; i < 64; i++) result = fn();
-	return result;
+// Runs forEachPaced over count items and records before which items it paused.
+async function pausesIn(paced, count, work) {
+	const pausedBefore = [];
+	let next = 0;
+	await paced(
+		Array.from({ length: count }, (_, i) => i),
+		i => {
+			next = i + 1;
+			work(i);
+		},
+		() => pausedBefore.push(next),
+	);
+	return pausedBefore;
 }
 
-// Load fresh copies of the modules, which capture the clock when they load.
+// Load fresh copies of the modules, with a clock the test moves by hand.
 function loadWithClock() {
 	const clock = { now: performance.now() + 1000 };
 	jest.spyOn(performance, 'now').mockImplementation(() => clock.now);
 	let modules;
 	jest.isolateModules(() => {
 		modules = {
-			immediate: require('../lib/util').immediate,
+			forEachPaced: require('../lib/util').forEachPaced,
 			Registry: require('../lib/registry'),
 			Counter: require('../lib/counter'),
 			Histogram: require('../lib/histogram'),
@@ -60,23 +67,31 @@ function loadUtil() {
 	return util;
 }
 
-describe('immediate()', () => {
+describe('forEachPaced()', () => {
 	afterEach(() => {
 		jest.useRealTimers();
 		jest.restoreAllMocks();
+	});
+
+	it('calls fn for every item in order', async () => {
+		const seen = [];
+		await forEachPaced([1, 2, 3, 4, 5], item => seen.push(item));
+		expect(seen).toEqual([1, 2, 3, 4, 5]);
 	});
 
 	it.each(['modern', 'legacy'])(
 		'pauses and resumes under %s fake timers',
 		async mode => {
 			jest.useFakeTimers({ legacyFakeTimers: mode === 'legacy' });
-			await nextPause();
+			const pausedBefore = await pausesIn(forEachPaced, 50, () => spin(0.1));
+			expect(pausedBefore.length).toBeGreaterThan(0);
 		},
 	);
 
 	it('resumes when the global setImmediate is mocked later', async () => {
 		jest.spyOn(global, 'setImmediate').mockImplementation(() => {});
-		await nextPause();
+		const pausedBefore = await pausesIn(forEachPaced, 50, () => spin(0.1));
+		expect(pausedBefore.length).toBeGreaterThan(0);
 		expect(global.setImmediate).not.toHaveBeenCalled();
 	});
 
@@ -91,30 +106,37 @@ describe('immediate()', () => {
 			global.setImmediate = setImmediate;
 		}
 
-		await nextPause(util.immediate);
+		const pausedBefore = await pausesIn(util.forEachPaced, 50, () => spin(0.1));
+		expect(pausedBefore.length).toBeGreaterThan(0);
 	});
 
-	it('waits only once the slice is used up', async () => {
-		const { clock, immediate: slicedImmediate } = loadWithClock();
+	it('pauses only once the slice is used up', async () => {
+		const { clock, forEachPaced: paced } = loadWithClock();
 
-		expect(call64(slicedImmediate)).toBeUndefined();
-		clock.now += 0.6;
-		expect(call64(slicedImmediate)).toBeUndefined();
-		clock.now += 0.6;
-		const pause = call64(slicedImmediate);
-		expect(pause).toBeInstanceOf(Promise);
-		await pause;
-
-		expect(call64(slicedImmediate)).toBeUndefined();
+		const pausedBefore = await pausesIn(paced, 10, () => {
+			clock.now += 0.3;
+		});
+		expect(pausedBefore[0]).toBe(4);
 	});
 
-	it('starts a new slice after an idle gap instead of pausing', async () => {
-		const { clock, immediate: slicedImmediate } = loadWithClock();
+	it('pauses after an item slower than the slice', async () => {
+		const { clock, forEachPaced: paced } = loadWithClock();
 
-		expect(call64(slicedImmediate)).toBeUndefined();
+		const pausedBefore = await pausesIn(paced, 3, () => {
+			clock.now += 5;
+		});
+		expect(pausedBefore).toEqual([1, 2]);
+	});
+
+	it('starts a new slice after the event loop turns instead of pausing', async () => {
+		const { clock, forEachPaced: paced } = loadWithClock();
+
+		await pausesIn(paced, 1, () => {
+			clock.now += 0.9;
+		});
 		clock.now += 5;
 		await new Promise(resolve => setImmediate(resolve));
-		expect(call64(slicedImmediate)).toBeUndefined();
+		expect(await pausesIn(paced, 3, () => {})).toEqual([]);
 	});
 });
 
