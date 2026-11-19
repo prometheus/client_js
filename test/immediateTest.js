@@ -141,11 +141,12 @@ describe('immediate()', () => {
 		expect(call64(slicedImmediate)).toBeUndefined();
 	});
 
-	it('starts a new slice after an idle gap instead of pausing', () => {
+	it('starts a new slice after an idle gap instead of pausing', async () => {
 		const { clock, immediate: slicedImmediate } = loadWithClock();
 
 		expect(call64(slicedImmediate)).toBeUndefined();
 		clock.now += 5;
+		await new Promise(resolve => setImmediate(resolve));
 		expect(call64(slicedImmediate)).toBeUndefined();
 	});
 });
