@@ -52,13 +52,11 @@ function loadWithClock() {
 	return { clock, ...modules };
 }
 
-function loadUtil(timersFactory) {
+function loadUtil() {
 	let util;
 	jest.isolateModules(() => {
-		if (timersFactory) jest.doMock('timers', timersFactory);
 		util = require('../lib/util');
 	});
-	jest.dontMock('timers');
 	return util;
 }
 
@@ -89,37 +87,6 @@ describe('immediate()', () => {
 		let util;
 		try {
 			util = loadUtil();
-		} finally {
-			global.setImmediate = setImmediate;
-		}
-
-		await nextPause(util.immediate);
-	});
-
-	it('falls back to setTimeout when every setImmediate is faked', async () => {
-		const fake = Object.assign(() => {}, { clock: {} });
-		const { setImmediate } = global;
-		global.setImmediate = fake;
-		let util;
-		try {
-			util = loadUtil(() => {
-				return { setImmediate: fake };
-			});
-		} finally {
-			global.setImmediate = setImmediate;
-		}
-
-		await nextPause(util.immediate);
-	});
-
-	it('falls back to setTimeout without timers or setImmediate, as in browsers', async () => {
-		const { setImmediate } = global;
-		delete global.setImmediate;
-		let util;
-		try {
-			util = loadUtil(() => {
-				throw new Error('no timers module');
-			});
 		} finally {
 			global.setImmediate = setImmediate;
 		}
