@@ -117,7 +117,7 @@ describe('validation', () => {
 	});
 
 	describe('UTF-8 exposition and escaping schemes in Registry', () => {
-		const { Registry, Gauge, Histogram } = require('../index');
+		const { Registry, Gauge, Histogram, Summary } = require('../index');
 
 		it('quotes non-legacy UTF-8 names under allow-utf-8 and escapes them under underscores, dots, and values', async () => {
 			const reg = new Registry(
@@ -257,6 +257,83 @@ describe('validation', () => {
 					'http_dot_request__duration_bucket{le="+Inf"} 1',
 					'http_dot_request__duration_sum 0.5',
 					'http_dot_request__duration_count 1',
+					'',
+				].join('\n'),
+			);
+		});
+
+		it('handles UTF-8 summary quantiles and _sum/_count suffixes under allow-utf-8 and dots escaping', async () => {
+			const reg = new Registry(
+				`${Registry.PROMETHEUS_CONTENT_TYPE}; escaping=allow-utf-8`,
+			);
+			const s = new Summary({
+				name: 'rpc.latency_seconds',
+				help: 'RPC latency',
+				percentiles: [0.5],
+				registers: [reg],
+			});
+			s.observe(2);
+
+			expect(await reg.metrics()).toBe(
+				[
+					'# HELP "rpc.latency_seconds" RPC latency',
+					'# TYPE "rpc.latency_seconds" summary',
+					'{"rpc.latency_seconds",quantile="0.5"} 2',
+					'{"rpc.latency_seconds_sum"} 2',
+					'{"rpc.latency_seconds_count"} 1',
+					'',
+				].join('\n'),
+			);
+
+			expect(await reg.metrics({ escaping: 'dots' })).toBe(
+				[
+					'# HELP rpc_dot_latency__seconds RPC latency',
+					'# TYPE rpc_dot_latency__seconds summary',
+					'rpc_dot_latency__seconds{quantile="0.5"} 2',
+					'rpc_dot_latency__seconds_sum 2',
+					'rpc_dot_latency__seconds_count 1',
+					'',
+				].join('\n'),
+			);
+		});
+
+		it('escapes and quotes custom per-sample val.metricName values', async () => {
+			const omReg = new Registry(
+				`${Registry.OPENMETRICS_CONTENT_TYPE}; escaping=allow-utf-8`,
+			);
+			omReg.registerMetric({
+				name: 'custom.family',
+				async get() {
+					return {
+						name: 'custom.family',
+						help: 'Custom counter with sample overrides',
+						type: 'counter',
+						values: [
+							{ metricName: 'sub.series_total', value: 3, labels: {} },
+							{ metricName: 'bad\nseries', value: 1, labels: {} },
+						],
+					};
+				},
+			});
+
+			expect(await omReg.metrics()).toBe(
+				[
+					'# HELP "custom.family" Custom counter with sample overrides',
+					'# TYPE "custom.family" counter',
+					'{"sub.series_total"} 3',
+					'bad\\nseries_total 1',
+					'# EOF',
+					'',
+				].join('\n'),
+			);
+
+			expect(await omReg.metrics({ escaping: 'dots' })).toBe(
+				[
+					'# HELP custom_dot_family Custom counter with sample overrides',
+					'# TYPE custom_dot_family counter',
+					'sub_dot_series_total 3',
+					'bad\\nseries_total 1',
+					'# EOF',
 					'',
 				].join('\n'),
 			);
