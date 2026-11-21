@@ -159,7 +159,9 @@ describe('Registry with pauses', () => {
 			Registry: SlicedRegistry,
 			Counter: SlicedCounter,
 		} = loadWithClock();
-		const registry = new SlicedRegistry();
+		const registry = new SlicedRegistry(undefined, {
+			nonBlockingExport: true,
+		});
 		const counter = new SlicedCounter({
 			name: 'c',
 			help: 'c',
@@ -180,7 +182,9 @@ describe('Registry with pauses', () => {
 			Registry: SlicedRegistry,
 			Histogram: SlicedHistogram,
 		} = loadWithClock();
-		const registry = new SlicedRegistry();
+		const registry = new SlicedRegistry(undefined, {
+			nonBlockingExport: true,
+		});
 		const histogram = new SlicedHistogram({
 			name: 'h',
 			help: 'h',
@@ -201,7 +205,9 @@ describe('Registry with pauses', () => {
 	});
 
 	it('runs collect() callbacks concurrently', async () => {
-		const registry = new Registry();
+		const registry = new Registry(undefined, {
+			nonBlockingExport: true,
+		});
 		for (const name of ['a', 'b', 'c']) {
 			new Gauge({
 				name,
@@ -220,7 +226,9 @@ describe('Registry with pauses', () => {
 	});
 
 	it('renders under fake timers', async () => {
-		const registry = new Registry();
+		const registry = new Registry(undefined, {
+			nonBlockingExport: true,
+		});
 		new Counter({ name: 'c', help: 'c', registers: [registry] }).inc();
 
 		jest.useFakeTimers();
