@@ -39,8 +39,12 @@ export class Registry<
 > {
 	/**
 	 * @param regContentType The content type of the registry
+	 * @param options.nonBlockingExport Set to true to pause metric export after every 1 ms so pending I/O can run. Default: false
 	 */
-	constructor(regContentType?: RegistryContentType);
+	constructor(
+		regContentType?: RegistryContentType,
+		options?: { nonBlockingExport?: boolean },
+	);
 
 	/**
 	 * Get string representation for all metrics

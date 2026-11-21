@@ -436,6 +436,20 @@ properties on the `Registry` object.
 The `contentType` constant exposed by the module returns the default content
 type when creating a new registry, currently defaults to Prometheus type.
 
+### Exporting without blocking the event loop
+
+By default a registry renders all metrics in one go, which blocks the event
+loop for as long as the export takes. Set `nonBlockingExport` to `true` to
+pause the export after every 1 ms so pending I/O can run in between.
+
+```js
+const registry = new Registry(Registry.PROMETHEUS_CONTENT_TYPE, {
+  nonBlockingExport: true,
+});
+```
+
+Values within one export can then come from slightly different moments.
+
 ### Multiple registries
 
 By default, metrics are automatically registered to the global registry (located
